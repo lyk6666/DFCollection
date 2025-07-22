@@ -1,0 +1,501 @@
+Age,BusinessTravel,DailyRate,Department,EducationField,Gender,HourlyRate,MaritalStatus
+41,Travel_Rarely,1102,Sales,Life Sciences,Female,94,Single
+49,Travel_Frequently,279,Research & Development,Life Sciences,Male,61,Married
+37,Travel_Rarely,1373,Research & Development,Other,Male,92,Single
+33,Travel_Frequently,1392,Research & Development,Life Sciences,Female,56,Married
+27,Travel_Rarely,591,Research & Development,Medical,Male,40,Married
+32,Travel_Frequently,1005,Research & Development,Life Sciences,Male,79,Single
+59,Travel_Rarely,1324,Research & Development,Medical,Female,81,Married
+30,Travel_Rarely,1358,Research & Development,Life Sciences,Male,67,Divorced
+38,Travel_Frequently,216,Research & Development,Life Sciences,Male,44,Single
+36,Travel_Rarely,1299,Research & Development,Medical,Male,94,Married
+35,Travel_Rarely,809,Research & Development,Medical,Male,84,Married
+29,Travel_Rarely,153,Research & Development,Life Sciences,Female,49,Single
+31,Travel_Rarely,670,Research & Development,Life Sciences,Male,31,Divorced
+34,Travel_Rarely,1346,Research & Development,Medical,Male,93,Divorced
+28,Travel_Rarely,103,Research & Development,Life Sciences,Male,50,Single
+29,Travel_Rarely,1389,Research & Development,Life Sciences,Female,51,Divorced
+32,Travel_Rarely,334,Research & Development,Life Sciences,Male,80,Divorced
+22,Non-Travel,1123,Research & Development,Medical,Male,96,Divorced
+53,Travel_Rarely,1219,Sales,Life Sciences,Female,78,Married
+38,Travel_Rarely,371,Research & Development,Life Sciences,Male,45,Single
+24,Non-Travel,673,Research & Development,Other,Female,96,Divorced
+36,Travel_Rarely,1218,Sales,Life Sciences,Male,82,Single
+34,Travel_Rarely,419,Research & Development,Life Sciences,Female,53,Single
+21,Travel_Rarely,391,Research & Development,Life Sciences,Male,96,Single
+34,Travel_Rarely,699,Research & Development,Medical,Male,83,Single
+53,Travel_Rarely,1282,Research & Development,Other,Female,58,Divorced
+32,Travel_Frequently,1125,Research & Development,Life Sciences,Female,72,Single
+42,Travel_Rarely,691,Sales,Marketing,Male,48,Married
+44,Travel_Rarely,477,Research & Development,Medical,Female,42,Married
+46,Travel_Rarely,705,Sales,Marketing,Female,83,Single
+33,Travel_Rarely,924,Research & Development,Medical,Male,78,Single
+44,Travel_Rarely,1459,Research & Development,Other,Male,41,Married
+30,Travel_Rarely,125,Research & Development,Medical,Male,83,Single
+39,Travel_Rarely,895,Sales,Technical Degree,Male,56,Married
+24,Travel_Rarely,813,Research & Development,Medical,Male,61,Married
+43,Travel_Rarely,1273,Research & Development,Medical,Female,72,Divorced
+50,Travel_Rarely,869,Sales,Marketing,Male,86,Married
+35,Travel_Rarely,890,Sales,Marketing,Female,97,Married
+36,Travel_Rarely,852,Research & Development,Life Sciences,Female,82,Married
+33,Travel_Frequently,1141,Sales,Life Sciences,Female,42,Married
+35,Travel_Rarely,464,Research & Development,Other,Male,75,Divorced
+27,Travel_Rarely,1240,Research & Development,Life Sciences,Female,33,Divorced
+26,Travel_Rarely,1357,Research & Development,Life Sciences,Male,48,Single
+27,Travel_Frequently,994,Sales,Life Sciences,Male,37,Single
+30,Travel_Frequently,721,Research & Development,Medical,Female,58,Single
+41,Travel_Rarely,1360,Research & Development,Technical Degree,Female,49,Married
+34,Non-Travel,1065,Sales,Marketing,Male,72,Single
+37,Travel_Rarely,408,Research & Development,Life Sciences,Male,73,Married
+46,Travel_Frequently,1211,Sales,Marketing,Male,98,Single
+35,Travel_Rarely,1229,Research & Development,Life Sciences,Male,36,Married
+48,Travel_Rarely,626,Research & Development,Life Sciences,Male,98,Single
+28,Travel_Rarely,1434,Research & Development,Technical Degree,Male,50,Single
+44,Travel_Rarely,1488,Sales,Marketing,Female,75,Divorced
+35,Non-Travel,1097,Research & Development,Medical,Male,79,Married
+26,Travel_Rarely,1443,Sales,Marketing,Female,47,Married
+33,Travel_Frequently,515,Research & Development,Life Sciences,Female,98,Single
+35,Travel_Frequently,853,Sales,Life Sciences,Male,71,Married
+35,Travel_Rarely,1142,Research & Development,Medical,Female,30,Married
+31,Travel_Rarely,655,Research & Development,Life Sciences,Male,48,Divorced
+37,Travel_Rarely,1115,Research & Development,Life Sciences,Male,51,Divorced
+32,Travel_Rarely,427,Research & Development,Medical,Male,33,Married
+38,Travel_Frequently,653,Research & Development,Life Sciences,Female,50,Single
+50,Travel_Rarely,989,Research & Development,Medical,Female,43,Divorced
+59,Travel_Rarely,1435,Sales,Life Sciences,Female,99,Single
+36,Travel_Rarely,1223,Research & Development,Technical Degree,Female,59,Divorced
+55,Travel_Rarely,836,Research & Development,Medical,Female,33,Divorced
+36,Travel_Frequently,1195,Research & Development,Life Sciences,Male,95,Single
+45,Travel_Rarely,1339,Research & Development,Life Sciences,Male,59,Divorced
+35,Travel_Frequently,664,Research & Development,Medical,Male,79,Married
+36,Travel_Rarely,318,Research & Development,Medical,Male,79,Married
+59,Travel_Frequently,1225,Sales,Life Sciences,Female,57,Single
+29,Travel_Rarely,1328,Research & Development,Life Sciences,Male,76,Married
+31,Travel_Rarely,1082,Research & Development,Medical,Male,87,Single
+32,Travel_Rarely,548,Research & Development,Life Sciences,Male,66,Married
+36,Travel_Rarely,132,Research & Development,Life Sciences,Female,55,Married
+31,Travel_Rarely,746,Research & Development,Life Sciences,Female,61,Single
+35,Travel_Rarely,776,Sales,Marketing,Male,32,Single
+45,Travel_Rarely,193,Research & Development,Other,Male,52,Married
+37,Travel_Rarely,397,Research & Development,Medical,Male,30,Single
+46,Travel_Rarely,945,Human Resources,Medical,Male,80,Divorced
+30,Travel_Rarely,852,Research & Development,Life Sciences,Male,55,Married
+35,Travel_Rarely,1214,Research & Development,Medical,Male,30,Single
+55,Travel_Rarely,111,Sales,Life Sciences,Male,70,Married
+38,Non-Travel,573,Research & Development,Medical,Female,79,Divorced
+34,Travel_Rarely,1153,Research & Development,Medical,Male,94,Married
+56,Travel_Rarely,1400,Research & Development,Life Sciences,Male,49,Single
+23,Travel_Rarely,541,Sales,Technical Degree,Male,62,Divorced
+51,Travel_Rarely,432,Research & Development,Life Sciences,Male,96,Married
+30,Travel_Rarely,288,Research & Development,Life Sciences,Male,99,Married
+46,Travel_Rarely,669,Sales,Medical,Male,64,Single
+40,Travel_Frequently,530,Research & Development,Life Sciences,Male,78,Married
+51,Travel_Rarely,632,Sales,Marketing,Male,71,Single
+30,Travel_Rarely,1334,Sales,Medical,Female,63,Divorced
+46,Travel_Frequently,638,Research & Development,Medical,Male,40,Married
+32,Travel_Rarely,1093,Sales,Medical,Male,87,Single
+54,Travel_Rarely,1217,Research & Development,Technical Degree,Female,60,Married
+24,Travel_Rarely,1353,Sales,Other,Female,33,Married
+28,Non-Travel,120,Sales,Medical,Male,43,Married
+58,Travel_Rarely,682,Sales,Medical,Male,37,Single
+44,Non-Travel,489,Research & Development,Medical,Male,67,Married
+37,Travel_Rarely,807,Human Resources,Human Resources,Male,63,Divorced
+32,Travel_Rarely,827,Research & Development,Life Sciences,Male,71,Single
+20,Travel_Frequently,871,Research & Development,Life Sciences,Female,66,Single
+34,Travel_Rarely,665,Research & Development,Other,Female,41,Single
+37,Non-Travel,1040,Research & Development,Life Sciences,Male,100,Divorced
+59,Non-Travel,1420,Human Resources,Human Resources,Female,32,Married
+50,Travel_Frequently,1115,Research & Development,Life Sciences,Female,73,Married
+25,Travel_Rarely,240,Sales,Marketing,Male,46,Single
+25,Travel_Rarely,1280,Research & Development,Medical,Male,64,Married
+22,Travel_Rarely,534,Research & Development,Medical,Female,59,Single
+51,Travel_Frequently,1456,Research & Development,Medical,Female,30,Single
+34,Travel_Frequently,658,Research & Development,Life Sciences,Male,66,Single
+54,Non-Travel,142,Human Resources,Human Resources,Female,30,Single
+24,Travel_Rarely,1127,Research & Development,Life Sciences,Male,52,Married
+34,Travel_Rarely,1031,Research & Development,Life Sciences,Female,45,Divorced
+37,Travel_Rarely,1189,Sales,Life Sciences,Male,87,Single
+34,Travel_Rarely,1354,Research & Development,Medical,Female,45,Single
+36,Travel_Frequently,1467,Sales,Technical Degree,Female,92,Married
+36,Travel_Rarely,922,Research & Development,Life Sciences,Female,39,Divorced
+43,Travel_Frequently,394,Sales,Life Sciences,Male,92,Married
+30,Travel_Frequently,1312,Research & Development,Life Sciences,Male,96,Divorced
+33,Non-Travel,750,Sales,Marketing,Male,95,Married
+56,Travel_Rarely,441,Research & Development,Life Sciences,Female,72,Married
+51,Travel_Rarely,684,Research & Development,Life Sciences,Male,51,Single
+31,Travel_Rarely,249,Sales,Life Sciences,Male,76,Married
+26,Travel_Rarely,841,Research & Development,Other,Female,46,Married
+58,Travel_Rarely,147,Research & Development,Medical,Female,94,Married
+19,Travel_Rarely,528,Sales,Marketing,Male,50,Single
+22,Travel_Rarely,594,Research & Development,Technical Degree,Male,100,Married
+49,Travel_Rarely,470,Research & Development,Medical,Female,96,Married
+43,Travel_Frequently,957,Research & Development,Medical,Female,72,Single
+50,Travel_Frequently,809,Sales,Marketing,Female,77,Single
+31,Travel_Rarely,542,Sales,Life Sciences,Female,71,Married
+41,Travel_Rarely,802,Sales,Life Sciences,Male,96,Divorced
+26,Travel_Rarely,1355,Human Resources,Life Sciences,Female,61,Married
+36,Travel_Rarely,216,Research & Development,Medical,Male,84,Divorced
+51,Travel_Frequently,1150,Research & Development,Life Sciences,Male,53,Single
+39,Travel_Rarely,1329,Sales,Life Sciences,Female,47,Married
+25,Travel_Rarely,959,Sales,Life Sciences,Male,41,Married
+30,Travel_Rarely,1240,Human Resources,Human Resources,Male,48,Married
+32,Travel_Rarely,1033,Research & Development,Medical,Female,41,Single
+45,Travel_Rarely,1316,Research & Development,Medical,Male,83,Single
+38,Travel_Rarely,364,Research & Development,Technical Degree,Female,32,Single
+30,Travel_Rarely,438,Research & Development,Life Sciences,Female,75,Single
+32,Travel_Frequently,689,Sales,Medical,Male,35,Divorced
+30,Travel_Rarely,201,Research & Development,Technical Degree,Female,84,Divorced
+30,Travel_Rarely,1427,Research & Development,Medical,Male,35,Single
+41,Travel_Frequently,857,Research & Development,Life Sciences,Male,91,Divorced
+41,Travel_Rarely,933,Research & Development,Life Sciences,Male,94,Married
+19,Travel_Rarely,1181,Research & Development,Medical,Female,79,Single
+40,Travel_Frequently,1395,Research & Development,Medical,Female,54,Divorced
+35,Travel_Rarely,662,Sales,Marketing,Male,94,Married
+53,Travel_Rarely,1436,Sales,Marketing,Male,34,Married
+45,Travel_Rarely,194,Research & Development,Life Sciences,Male,60,Divorced
+32,Travel_Frequently,967,Sales,Marketing,Female,43,Single
+29,Non-Travel,1496,Research & Development,Technical Degree,Male,41,Married
+51,Travel_Rarely,1169,Research & Development,Medical,Male,34,Married
+58,Travel_Rarely,1145,Research & Development,Medical,Female,75,Married
+40,Travel_Rarely,630,Sales,Marketing,Male,67,Married
+34,Travel_Frequently,303,Sales,Marketing,Female,75,Married
+22,Travel_Rarely,1256,Research & Development,Medical,Male,80,Married
+27,Non-Travel,691,Research & Development,Medical,Male,57,Divorced
+28,Travel_Rarely,440,Research & Development,Medical,Male,42,Married
+57,Travel_Rarely,334,Research & Development,Life Sciences,Male,83,Divorced
+27,Non-Travel,1450,Research & Development,Medical,Male,79,Divorced
+50,Travel_Rarely,1452,Research & Development,Life Sciences,Female,53,Single
+41,Travel_Rarely,465,Research & Development,Life Sciences,Male,56,Divorced
+30,Travel_Rarely,1339,Sales,Life Sciences,Female,41,Married
+38,Travel_Rarely,702,Sales,Life Sciences,Female,59,Single
+32,Travel_Rarely,120,Research & Development,Life Sciences,Male,43,Single
+27,Travel_Rarely,1157,Research & Development,Technical Degree,Male,51,Married
+19,Travel_Frequently,602,Sales,Technical Degree,Female,100,Single
+36,Travel_Frequently,1480,Research & Development,Medical,Male,30,Single
+30,Non-Travel,111,Research & Development,Medical,Male,66,Divorced
+45,Travel_Rarely,1268,Sales,Life Sciences,Female,30,Divorced
+56,Travel_Rarely,713,Research & Development,Life Sciences,Female,67,Divorced
+33,Travel_Rarely,134,Research & Development,Life Sciences,Male,90,Single
+19,Travel_Rarely,303,Research & Development,Life Sciences,Male,47,Single
+46,Travel_Rarely,526,Sales,Marketing,Female,92,Divorced
+38,Travel_Rarely,1380,Research & Development,Life Sciences,Female,75,Single
+31,Travel_Rarely,140,Research & Development,Medical,Female,95,Married
+34,Travel_Rarely,629,Research & Development,Medical,Female,95,Single
+41,Travel_Rarely,1356,Sales,Marketing,Female,70,Single
+50,Travel_Rarely,328,Research & Development,Medical,Male,86,Married
+53,Travel_Rarely,1084,Research & Development,Medical,Female,57,Divorced
+33,Travel_Rarely,931,Research & Development,Medical,Female,72,Married
+40,Travel_Rarely,989,Research & Development,Medical,Female,46,Married
+55,Travel_Rarely,692,Research & Development,Medical,Male,61,Single
+34,Travel_Frequently,1069,Research & Development,Life Sciences,Male,45,Married
+51,Travel_Rarely,313,Research & Development,Medical,Female,98,Single
+52,Travel_Rarely,699,Research & Development,Life Sciences,Male,65,Married
+27,Travel_Rarely,894,Research & Development,Medical,Female,99,Single
+35,Travel_Rarely,556,Research & Development,Life Sciences,Male,50,Married
+43,Non-Travel,1344,Research & Development,Medical,Male,37,Divorced
+45,Non-Travel,1195,Research & Development,Medical,Male,65,Married
+37,Travel_Rarely,290,Research & Development,Life Sciences,Male,65,Married
+35,Travel_Frequently,138,Research & Development,Medical,Female,37,Single
+42,Non-Travel,926,Research & Development,Medical,Female,36,Divorced
+38,Travel_Rarely,1261,Research & Development,Life Sciences,Male,88,Married
+38,Travel_Rarely,1084,Research & Development,Technical Degree,Male,54,Married
+27,Travel_Frequently,472,Research & Development,Technical Degree,Male,60,Married
+49,Non-Travel,1002,Research & Development,Life Sciences,Male,92,Divorced
+34,Travel_Frequently,878,Research & Development,Medical,Male,43,Divorced
+40,Travel_Rarely,905,Research & Development,Medical,Male,99,Married
+38,Travel_Rarely,1180,Research & Development,Medical,Male,70,Married
+29,Travel_Rarely,121,Sales,Marketing,Female,35,Married
+22,Travel_Rarely,1136,Research & Development,Life Sciences,Male,60,Divorced
+36,Travel_Frequently,635,Research & Development,Medical,Female,73,Single
+40,Non-Travel,1151,Research & Development,Life Sciences,Male,63,Married
+46,Travel_Rarely,644,Research & Development,Medical,Male,97,Divorced
+32,Travel_Rarely,1045,Sales,Medical,Male,32,Married
+30,Non-Travel,829,Research & Development,Life Sciences,Male,88,Single
+27,Travel_Frequently,1242,Sales,Life Sciences,Female,90,Single
+51,Travel_Rarely,1469,Research & Development,Life Sciences,Male,81,Married
+30,Travel_Rarely,1005,Research & Development,Technical Degree,Female,88,Single
+41,Travel_Rarely,896,Sales,Life Sciences,Female,75,Single
+30,Travel_Frequently,334,Sales,Marketing,Female,52,Single
+29,Travel_Rarely,992,Research & Development,Technical Degree,Male,85,Single
+45,Non-Travel,1052,Sales,Medical,Female,57,Single
+54,Travel_Rarely,1147,Sales,Marketing,Female,52,Married
+36,Travel_Rarely,1396,Research & Development,Life Sciences,Male,62,Single
+33,Travel_Rarely,147,Research & Development,Medical,Female,47,Married
+37,Travel_Frequently,663,Research & Development,Other,Male,47,Divorced
+38,Travel_Rarely,119,Sales,Life Sciences,Male,76,Divorced
+31,Non-Travel,979,Research & Development,Medical,Male,90,Married
+59,Travel_Rarely,142,Research & Development,Life Sciences,Male,70,Married
+37,Travel_Frequently,319,Sales,Marketing,Male,41,Divorced
+29,Travel_Frequently,1413,Sales,Medical,Female,42,Married
+35,Travel_Frequently,944,Sales,Marketing,Female,92,Single
+29,Travel_Rarely,896,Research & Development,Medical,Male,86,Single
+52,Travel_Rarely,1323,Research & Development,Life Sciences,Female,89,Single
+42,Travel_Rarely,532,Research & Development,Technical Degree,Male,58,Married
+59,Travel_Rarely,818,Human Resources,Medical,Male,52,Married
+50,Travel_Rarely,854,Sales,Medical,Female,68,Divorced
+33,Travel_Rarely,813,Research & Development,Medical,Male,58,Married
+43,Travel_Rarely,1034,Sales,Marketing,Female,80,Married
+33,Travel_Rarely,465,Research & Development,Life Sciences,Female,39,Married
+52,Non-Travel,771,Sales,Life Sciences,Male,79,Single
+32,Travel_Rarely,1401,Sales,Life Sciences,Female,56,Married
+32,Travel_Rarely,515,Research & Development,Life Sciences,Male,62,Single
+39,Travel_Rarely,1431,Research & Development,Medical,Female,96,Divorced
+32,Non-Travel,976,Sales,Marketing,Male,100,Married
+41,Travel_Rarely,1411,Research & Development,Life Sciences,Male,36,Divorced
+40,Travel_Rarely,1300,Research & Development,Technical Degree,Male,62,Divorced
+45,Travel_Rarely,252,Research & Development,Other,Male,70,Married
+31,Travel_Frequently,1327,Research & Development,Medical,Male,73,Divorced
+33,Travel_Rarely,832,Research & Development,Life Sciences,Female,63,Married
+34,Travel_Rarely,470,Research & Development,Life Sciences,Male,84,Married
+37,Travel_Rarely,1017,Research & Development,Medical,Female,83,Married
+45,Travel_Frequently,1199,Research & Development,Life Sciences,Male,77,Married
+37,Travel_Frequently,504,Research & Development,Medical,Male,61,Divorced
+39,Travel_Frequently,505,Research & Development,Technical Degree,Female,64,Single
+29,Travel_Rarely,665,Research & Development,Life Sciences,Male,60,Single
+42,Travel_Rarely,916,Research & Development,Life Sciences,Female,82,Single
+29,Travel_Rarely,1247,Sales,Marketing,Male,45,Divorced
+25,Travel_Rarely,685,Research & Development,Life Sciences,Female,62,Married
+42,Travel_Rarely,269,Research & Development,Medical,Female,56,Divorced
+40,Travel_Rarely,1416,Research & Development,Medical,Male,49,Divorced
+51,Travel_Rarely,833,Research & Development,Life Sciences,Male,96,Married
+31,Travel_Frequently,307,Research & Development,Medical,Male,71,Single
+32,Travel_Frequently,1311,Research & Development,Life Sciences,Male,100,Married
+38,Non-Travel,1327,Sales,Life Sciences,Male,39,Married
+32,Travel_Rarely,128,Research & Development,Technical Degree,Male,84,Single
+46,Travel_Rarely,488,Sales,Technical Degree,Female,75,Married
+28,Travel_Rarely,529,Research & Development,Life Sciences,Male,79,Single
+29,Travel_Rarely,1210,Sales,Medical,Male,78,Married
+31,Travel_Rarely,1463,Research & Development,Medical,Male,64,Married
+25,Non-Travel,675,Research & Development,Life Sciences,Male,85,Divorced
+45,Travel_Rarely,1385,Research & Development,Medical,Male,79,Married
+36,Travel_Rarely,1403,Research & Development,Life Sciences,Male,47,Married
+55,Travel_Rarely,452,Research & Development,Medical,Male,81,Single
+47,Non-Travel,666,Research & Development,Life Sciences,Male,88,Married
+28,Travel_Rarely,1158,Research & Development,Medical,Male,94,Married
+37,Travel_Rarely,228,Sales,Medical,Male,98,Married
+21,Travel_Rarely,996,Research & Development,Medical,Male,100,Single
+37,Non-Travel,728,Research & Development,Medical,Female,80,Divorced
+35,Travel_Rarely,1315,Research & Development,Life Sciences,Female,71,Divorced
+38,Travel_Rarely,322,Sales,Medical,Female,44,Divorced
+26,Travel_Frequently,1479,Research & Development,Life Sciences,Female,84,Divorced
+50,Travel_Rarely,797,Research & Development,Life Sciences,Male,96,Divorced
+53,Travel_Rarely,1070,Research & Development,Medical,Male,45,Married
+42,Travel_Rarely,635,Sales,Life Sciences,Male,99,Married
+29,Travel_Frequently,442,Sales,Life Sciences,Male,44,Single
+55,Travel_Rarely,147,Research & Development,Technical Degree,Male,37,Married
+26,Travel_Frequently,496,Research & Development,Medical,Male,60,Married
+37,Travel_Rarely,1372,Research & Development,Life Sciences,Female,42,Single
+44,Travel_Frequently,920,Research & Development,Life Sciences,Male,43,Divorced
+38,Travel_Rarely,688,Research & Development,Life Sciences,Male,82,Divorced
+26,Travel_Rarely,1449,Research & Development,Medical,Male,45,Divorced
+28,Travel_Rarely,1117,Research & Development,Life Sciences,Female,66,Single
+49,Travel_Frequently,636,Research & Development,Life Sciences,Female,35,Single
+36,Travel_Rarely,506,Research & Development,Technical Degree,Male,30,Single
+31,Travel_Frequently,444,Sales,Marketing,Female,84,Divorced
+26,Travel_Rarely,950,Sales,Marketing,Male,48,Single
+37,Travel_Frequently,889,Research & Development,Medical,Male,53,Married
+42,Travel_Frequently,555,Sales,Marketing,Female,77,Married
+18,Travel_Rarely,230,Research & Development,Life Sciences,Male,54,Single
+35,Travel_Rarely,1232,Sales,Marketing,Male,96,Married
+36,Travel_Frequently,566,Research & Development,Life Sciences,Male,81,Married
+51,Travel_Rarely,1302,Research & Development,Medical,Male,84,Divorced
+41,Travel_Rarely,334,Sales,Life Sciences,Male,88,Single
+18,Travel_Rarely,812,Sales,Medical,Female,69,Single
+28,Travel_Rarely,1476,Research & Development,Medical,Male,68,Single
+31,Travel_Rarely,218,Sales,Technical Degree,Male,100,Married
+39,Travel_Rarely,1132,Research & Development,Medical,Male,48,Divorced
+36,Non-Travel,1105,Research & Development,Life Sciences,Female,47,Married
+32,Travel_Rarely,906,Sales,Life Sciences,Male,91,Married
+38,Travel_Rarely,849,Research & Development,Life Sciences,Female,81,Married
+58,Non-Travel,390,Research & Development,Life Sciences,Male,32,Divorced
+31,Travel_Rarely,691,Research & Development,Technical Degree,Male,86,Married
+31,Travel_Rarely,106,Human Resources,Human Resources,Male,62,Married
+45,Travel_Frequently,1249,Research & Development,Life Sciences,Male,97,Divorced
+31,Travel_Rarely,192,Research & Development,Life Sciences,Male,32,Divorced
+33,Travel_Frequently,553,Research & Development,Life Sciences,Female,74,Married
+39,Travel_Rarely,117,Research & Development,Medical,Male,99,Married
+43,Travel_Frequently,185,Research & Development,Life Sciences,Female,33,Single
+49,Travel_Rarely,1091,Research & Development,Technical Degree,Female,90,Single
+52,Travel_Rarely,723,Research & Development,Medical,Male,85,Married
+27,Travel_Rarely,1220,Research & Development,Life Sciences,Female,85,Single
+32,Travel_Rarely,588,Sales,Technical Degree,Female,65,Married
+27,Travel_Rarely,1377,Sales,Life Sciences,Male,74,Single
+31,Travel_Rarely,691,Sales,Marketing,Male,73,Divorced
+32,Travel_Rarely,1018,Research & Development,Medical,Female,74,Single
+28,Travel_Rarely,1157,Research & Development,Medical,Male,84,Married
+30,Travel_Rarely,1275,Research & Development,Medical,Female,64,Married
+31,Travel_Frequently,798,Research & Development,Life Sciences,Female,48,Married
+39,Travel_Frequently,672,Research & Development,Medical,Male,54,Married
+39,Travel_Rarely,1162,Sales,Medical,Female,41,Married
+33,Travel_Frequently,508,Sales,Marketing,Male,46,Single
+47,Travel_Rarely,1482,Research & Development,Life Sciences,Male,42,Married
+43,Travel_Frequently,559,Research & Development,Life Sciences,Female,82,Divorced
+27,Non-Travel,210,Sales,Marketing,Male,73,Married
+54,Travel_Frequently,928,Research & Development,Life Sciences,Female,31,Single
+43,Travel_Rarely,1001,Research & Development,Life Sciences,Female,43,Married
+45,Travel_Rarely,549,Research & Development,Other,Male,75,Married
+40,Travel_Rarely,1124,Sales,Medical,Male,57,Married
+29,Travel_Rarely,318,Research & Development,Other,Male,77,Married
+29,Travel_Rarely,738,Research & Development,Other,Male,30,Single
+30,Travel_Rarely,570,Sales,Marketing,Female,30,Divorced
+27,Travel_Rarely,1130,Sales,Marketing,Female,56,Married
+37,Travel_Rarely,1192,Research & Development,Medical,Male,61,Divorced
+38,Travel_Rarely,343,Research & Development,Life Sciences,Male,92,Divorced
+31,Travel_Rarely,1232,Research & Development,Medical,Female,39,Single
+29,Travel_Rarely,144,Sales,Marketing,Female,39,Divorced
+35,Travel_Rarely,1296,Research & Development,Technical Degree,Male,62,Single
+23,Travel_Rarely,1309,Research & Development,Life Sciences,Male,83,Divorced
+41,Travel_Rarely,483,Research & Development,Medical,Male,95,Single
+47,Travel_Frequently,1309,Sales,Medical,Male,99,Single
+42,Travel_Rarely,810,Research & Development,Life Sciences,Female,44,Single
+29,Non-Travel,746,Sales,Life Sciences,Male,61,Married
+42,Travel_Rarely,544,Human Resources,Technical Degree,Male,52,Divorced
+32,Travel_Rarely,1062,Research & Development,Medical,Female,75,Married
+48,Travel_Rarely,530,Sales,Medical,Female,91,Married
+37,Travel_Rarely,1319,Research & Development,Medical,Male,51,Divorced
+30,Non-Travel,641,Sales,Technical Degree,Female,85,Married
+26,Travel_Rarely,933,Sales,Life Sciences,Male,57,Married
+42,Travel_Rarely,1332,Research & Development,Other,Male,98,Single
+21,Travel_Frequently,756,Sales,Technical Degree,Female,99,Single
+36,Non-Travel,845,Sales,Medical,Female,45,Single
+36,Travel_Frequently,541,Sales,Medical,Male,48,Married
+57,Travel_Rarely,593,Research & Development,Medical,Male,88,Married
+40,Travel_Rarely,1171,Research & Development,Life Sciences,Female,46,Married
+21,Non-Travel,895,Sales,Medical,Male,39,Single
+33,Travel_Rarely,350,Sales,Marketing,Female,34,Single
+37,Travel_Rarely,921,Research & Development,Medical,Female,98,Married
+46,Non-Travel,1144,Research & Development,Medical,Female,30,Married
+41,Travel_Frequently,143,Sales,Marketing,Male,56,Single
+50,Travel_Rarely,1046,Research & Development,Technical Degree,Male,100,Single
+40,Travel_Rarely,575,Sales,Marketing,Male,68,Married
+31,Travel_Rarely,408,Research & Development,Life Sciences,Male,42,Single
+21,Travel_Rarely,156,Sales,Life Sciences,Female,90,Single
+29,Travel_Rarely,1283,Research & Development,Life Sciences,Male,54,Single
+35,Travel_Rarely,755,Research & Development,Life Sciences,Male,97,Single
+27,Travel_Rarely,1469,Research & Development,Medical,Male,82,Divorced
+28,Travel_Rarely,304,Sales,Life Sciences,Male,92,Single
+49,Travel_Rarely,1261,Research & Development,Other,Male,31,Single
+51,Travel_Rarely,1178,Sales,Life Sciences,Female,87,Married
+36,Travel_Rarely,329,Research & Development,Life Sciences,Female,96,Married
+34,Non-Travel,1362,Sales,Marketing,Male,67,Single
+55,Travel_Rarely,1311,Research & Development,Life Sciences,Female,97,Single
+24,Travel_Rarely,1371,Sales,Marketing,Female,77,Divorced
+30,Travel_Rarely,202,Sales,Technical Degree,Male,72,Married
+26,Travel_Frequently,575,Research & Development,Technical Degree,Male,73,Single
+22,Travel_Rarely,253,Research & Development,Medical,Female,43,Married
+36,Travel_Rarely,164,Sales,Medical,Male,61,Married
+30,Travel_Frequently,464,Research & Development,Technical Degree,Male,40,Single
+37,Travel_Rarely,1107,Research & Development,Life Sciences,Female,95,Divorced
+40,Travel_Rarely,759,Sales,Marketing,Female,46,Divorced
+42,Travel_Rarely,201,Research & Development,Life Sciences,Female,95,Divorced
+37,Travel_Rarely,1305,Research & Development,Life Sciences,Male,49,Single
+43,Travel_Rarely,982,Research & Development,Life Sciences,Male,59,Divorced
+40,Travel_Rarely,555,Research & Development,Medical,Female,78,Married
+54,Travel_Rarely,821,Research & Development,Medical,Male,86,Married
+34,Non-Travel,1381,Sales,Marketing,Female,72,Married
+31,Travel_Rarely,480,Research & Development,Medical,Female,31,Married
+43,Travel_Frequently,313,Research & Development,Medical,Male,61,Married
+43,Travel_Rarely,1473,Research & Development,Other,Female,74,Divorced
+25,Travel_Rarely,891,Sales,Life Sciences,Female,99,Single
+37,Non-Travel,1063,Research & Development,Medical,Female,72,Married
+31,Travel_Rarely,329,Research & Development,Life Sciences,Male,98,Married
+39,Travel_Frequently,1218,Research & Development,Life Sciences,Male,52,Divorced
+56,Travel_Frequently,906,Sales,Life Sciences,Female,86,Married
+30,Travel_Rarely,1082,Sales,Technical Degree,Female,83,Single
+41,Travel_Rarely,645,Sales,Marketing,Male,49,Married
+28,Travel_Rarely,1300,Research & Development,Medical,Male,79,Divorced
+25,Travel_Rarely,688,Research & Development,Medical,Male,91,Married
+52,Travel_Rarely,319,Research & Development,Medical,Male,39,Married
+45,Travel_Rarely,192,Research & Development,Life Sciences,Male,69,Married
+52,Travel_Rarely,1490,Research & Development,Life Sciences,Female,30,Married
+42,Travel_Frequently,532,Research & Development,Life Sciences,Female,92,Divorced
+30,Travel_Rarely,317,Research & Development,Life Sciences,Female,43,Single
+60,Travel_Rarely,422,Research & Development,Life Sciences,Female,41,Married
+46,Travel_Rarely,1485,Research & Development,Medical,Female,87,Divorced
+42,Travel_Frequently,1368,Research & Development,Technical Degree,Female,88,Married
+24,Travel_Rarely,1448,Sales,Technical Degree,Female,62,Single
+34,Travel_Frequently,296,Sales,Marketing,Female,33,Divorced
+38,Travel_Frequently,1490,Research & Development,Life Sciences,Male,42,Married
+40,Travel_Rarely,1398,Sales,Life Sciences,Female,79,Married
+26,Travel_Rarely,1349,Research & Development,Life Sciences,Female,90,Divorced
+30,Non-Travel,1400,Research & Development,Life Sciences,Male,53,Married
+29,Travel_Rarely,986,Research & Development,Medical,Male,93,Married
+29,Travel_Rarely,408,Research & Development,Technical Degree,Female,71,Married
+19,Travel_Rarely,489,Human Resources,Technical Degree,Male,52,Single
+30,Non-Travel,1398,Sales,Other,Female,69,Married
+57,Travel_Rarely,210,Sales,Marketing,Male,56,Divorced
+50,Travel_Rarely,1099,Research & Development,Life Sciences,Male,88,Married
+30,Non-Travel,1116,Research & Development,Medical,Female,49,Single
+60,Travel_Frequently,1499,Sales,Marketing,Female,80,Married
+47,Travel_Rarely,983,Research & Development,Medical,Female,65,Divorced
+46,Travel_Rarely,1009,Research & Development,Life Sciences,Male,51,Married
+35,Travel_Rarely,144,Research & Development,Life Sciences,Male,46,Single
+54,Travel_Rarely,548,Research & Development,Life Sciences,Female,42,Single
+34,Travel_Rarely,1303,Research & Development,Life Sciences,Male,62,Divorced
+46,Travel_Rarely,1125,Sales,Marketing,Female,94,Married
+31,Travel_Rarely,1274,Research & Development,Life Sciences,Male,33,Divorced
+33,Travel_Rarely,1277,Research & Development,Medical,Male,56,Married
+33,Travel_Rarely,587,Research & Development,Medical,Male,38,Divorced
+30,Travel_Rarely,413,Sales,Marketing,Male,57,Single
+35,Travel_Rarely,1276,Research & Development,Life Sciences,Male,72,Married
+31,Travel_Frequently,534,Research & Development,Life Sciences,Male,66,Married
+34,Travel_Frequently,988,Human Resources,Human Resources,Female,43,Divorced
+42,Travel_Frequently,1474,Research & Development,Other,Male,97,Married
+36,Non-Travel,635,Sales,Medical,Male,32,Single
+22,Travel_Frequently,1368,Research & Development,Technical Degree,Male,99,Single
+48,Travel_Rarely,163,Sales,Marketing,Female,37,Married
+55,Travel_Rarely,1117,Sales,Life Sciences,Female,83,Single
+41,Non-Travel,267,Sales,Life Sciences,Male,56,Single
+35,Travel_Rarely,619,Sales,Marketing,Male,85,Married
+40,Travel_Rarely,302,Research & Development,Life Sciences,Female,75,Single
+39,Travel_Frequently,443,Research & Development,Life Sciences,Female,48,Married
+31,Travel_Rarely,828,Sales,Life Sciences,Male,77,Single
+42,Travel_Rarely,319,Research & Development,Medical,Male,56,Married
+45,Travel_Rarely,561,Sales,Other,Male,61,Married
+26,Travel_Frequently,426,Human Resources,Life Sciences,Female,58,Divorced
+29,Travel_Rarely,232,Research & Development,Technical Degree,Male,34,Divorced
+33,Travel_Rarely,922,Research & Development,Medical,Female,95,Divorced
+31,Travel_Rarely,688,Sales,Life Sciences,Male,44,Divorced
+18,Travel_Frequently,1306,Sales,Marketing,Male,69,Single
+40,Non-Travel,1094,Sales,Other,Male,58,Divorced
+41,Non-Travel,509,Research & Development,Other,Female,62,Single
+26,Travel_Rarely,775,Sales,Medical,Male,45,Divorced
+35,Travel_Rarely,195,Sales,Medical,Female,80,Single
+34,Travel_Rarely,258,Sales,Life Sciences,Male,74,Single
+26,Travel_Rarely,471,Research & Development,Technical Degree,Male,66,Single
+37,Travel_Rarely,799,Research & Development,Technical Degree,Female,59,Single
+46,Travel_Frequently,1034,Research & Development,Medical,Female,86,Married
+41,Travel_Rarely,1276,Sales,Life Sciences,Female,91,Married
+37,Non-Travel,142,Sales,Medical,Male,69,Divorced
+52,Travel_Rarely,956,Research & Development,Technical Degree,Male,78,Divorced
+32,Non-Travel,1474,Sales,Other,Male,60,Married
+24,Travel_Frequently,535,Sales,Medical,Male,38,Married
+38,Travel_Rarely,1495,Research & Development,Medical,Female,76,Married
+37,Travel_Rarely,446,Research & Development,Life Sciences,Female,65,Married
+49,Travel_Rarely,1245,Research & Development,Life Sciences,Male,58,Divorced
+24,Travel_Rarely,691,Research & Development,Medical,Male,89,Married
+26,Travel_Rarely,703,Sales,Marketing,Male,66,Married
+24,Travel_Rarely,823,Research & Development,Other,Male,94,Married
+50,Travel_Frequently,1246,Human Resources,Medical,Male,99,Married
+25,Travel_Rarely,622,Sales,Medical,Male,40,Married
+24,Travel_Frequently,1287,Research & Development,Life Sciences,Female,55,Married
+30,Travel_Frequently,448,Sales,Life Sciences,Male,74,Married
+34,Travel_Rarely,254,Research & Development,Life Sciences,Male,83,Married
+31,Travel_Rarely,1365,Sales,Medical,Male,46,Divorced
+35,Travel_Rarely,538,Research & Development,Other,Male,54,Single
+31,Travel_Rarely,525,Sales,Medical,Male,66,Divorced
+27,Travel_Rarely,798,Research & Development,Medical,Female,66,Divorced
+37,Travel_Rarely,558,Sales,Marketing,Male,75,Married
+20,Travel_Rarely,959,Research & Development,Life Sciences,Female,83,Single
+42,Travel_Rarely,622,Research & Development,Life Sciences,Female,81,Married
+43,Travel_Rarely,782,Research & Development,Other,Male,50,Divorced
+38,Travel_Rarely,362,Research & Development,Life Sciences,Female,43,Single
+43,Travel_Frequently,1001,Research & Development,Medical,Male,72,Divorced
+48,Travel_Rarely,1236,Research & Development,Life Sciences,Female,40,Married
+44,Travel_Rarely,1112,Human Resources,Life Sciences,Female,50,Single
+34,Travel_Rarely,204,Sales,Technical Degree,Female,31,Divorced
+27,Travel_Rarely,1420,Sales,Marketing,Male,85,Divorced
+21,Travel_Rarely,1343,Sales,Technical Degree,Male,49,Single
+44,Travel_Rarely,1315,Research & Development,Other,Male,35,Married
+22,Travel_Rarely,604,Research & Development,Medical,Male,69,Married
+33,Travel_Rarely,1216,Sales,Marketing,Male,39,Divorced
