@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 
 function ExploreInsightGlyph({ collection, onInsightClick, onLayoutReady, onLegendReady, onTypeLegendReady, onLargestReady, polygonLayout }) {
   const svgRef = useRef(null);
-  const width = 400;
+  const width = 390;
   const height = 440;
   const [positionedInsights, setPositionedInsights] = useState([]);
   

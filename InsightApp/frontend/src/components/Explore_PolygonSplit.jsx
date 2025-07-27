@@ -195,7 +195,7 @@ function aggregateInsightCountsByLevel(sectionData, level = 0, acc = {}) {
   return acc;
 }
 
-function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionData, onInsightClick, onLayoutReady }) {
+function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionData, onInsightClick, onLayoutReady, selectedInsight }) {
   const [valueSequences, setValueSequences] = useState({});
   const [polygonSections, setPolygonSections] = useState(null);
 
@@ -403,7 +403,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
           height: height,
           background: "white",
           flexShrink: 0,
-          border: "2px solid #ccc"  // 👈 Add this line
+          border: "0px solid #ccc"  // 👈 Add this line
         }}
       >
         {/* Arrowhead marker definition */}
@@ -486,6 +486,19 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
               );
             });
           })}
+          
+        {selectedInsight && selectedInsight.position && (
+          <circle
+            cx={selectedInsight.position.x}
+            cy={selectedInsight.position.y}
+            r={6}
+            stroke="red"
+            strokeWidth={2}
+            fill="none"
+            strokeDasharray="4 2"
+            pointerEvents="none"
+          />
+        )}
 
         {/* Split lines with level-based fading */}
         {polygonSections?.split_lines && polygonSections.split_lines.map((line, i) => {

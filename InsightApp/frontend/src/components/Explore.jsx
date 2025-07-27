@@ -136,6 +136,7 @@ function Explore({ width, height, collection, filterOrder, setFilterOrder, secti
             sectionData={sectionData}
             onInsightClick={handlePolygonInsightClick}
             onLayoutReady={handlePolygonLayoutReady}
+            selectedInsight={clickedInsight}  // ✅ Add this line
           />
         </div>
 

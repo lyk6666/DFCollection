@@ -164,11 +164,11 @@ export function HorizontalMiniChartGroup({ insights }) {
       backgroundColor: "#fff", // ← modify this line
     }}>
       {insights.slice(0, 3).map((insight, idx) => (
-        <div key={idx} style={{ width: "130px", height: "120px", textAlign: "center" }}>
+        <div key={idx} style={{ width: "230px", height: "190px", textAlign: "center" }}>
           <div style={{ fontSize: "10px", color: "#666", marginBottom: "2px" }}>
             {insight.type}
           </div>
-          <InsightMiniChart insight={insight} width={120} height={100} />
+          <InsightMiniChart insight={insight} width={220} height={180} />
         </div>
       ))}
     </div>

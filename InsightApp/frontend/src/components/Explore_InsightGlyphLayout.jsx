@@ -15,26 +15,24 @@ function ExploreInsightGlyphLayout({ collection, onInsightClick, onLayoutReady, 
   return (
     <>
 
-<div style={{
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  width: "400px",
-  minHeight: "60px",
-  padding: "6px 8px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "flex-start",
-  gap: "12px",
-  boxSizing: "border-box",
-}}>
-  {largestInsights.length > 0 ? (
-    <HorizontalMiniChartGroup insights={largestInsights} />
-  ) : (
-    <div style={{ fontSize: "10px", color: "#aaa" }}>Loading charts...</div>
-  )}
-</div>
-
+    <div style={{
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      width: "690px",
+      minHeight: "100px",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "flex-start",
+      gap: "12px",
+      boxSizing: "border-box",
+    }}>
+      {largestInsights.length > 0 ? (
+        <HorizontalMiniChartGroup insights={largestInsights} />
+      ) : (
+        <div style={{ fontSize: "10px", color: "#aaa" }}>Loading charts...</div>
+      )}
+    </div>
 
     <div style={{
       position: "absolute",
@@ -125,8 +123,8 @@ function ExploreInsightGlyphLayout({ collection, onInsightClick, onLayoutReady, 
       <div style={{
         position: "absolute",
         top: 50,
-        left: 0,
-        width: "400px",
+        left: 5,
+        width: "390px",
         height: "440px",
         border: "1px solid #333",
         color: "black",

@@ -71,7 +71,7 @@ function App() {
       {/* Left side: Overview + FullView vertically stacked */}
       <div style={{ width: fullViewWidth, flexDirection: "column" }}>
         {/* Overview (Top) */}
-        <div style={{ height: "25%", background: "#e0e0e0" }}>
+        <div style={{ height: "25%", background: "#ffffff" }}>
           <Overview
             insights={insights}
             collections={collections}
@@ -82,7 +82,7 @@ function App() {
         </div>
 
         {/* FullView (Bottom) */}
-        <div style={{ height: "75%", background: "#e0e0e0" }}>
+        <div style={{ height: "75%", background: "#ffffff" }}>
           {collections.length > 0 && (
             <FullView
               width={fullViewWidth}
@@ -98,7 +98,7 @@ function App() {
       </div>
 
       {/* Explore stays on the right */}
-      <div style={{ width: exploreWidth, background: "#e0e0e0" }}>
+      <div style={{ width: exploreWidth, background: "#ffffff" }}>
         <Explore
           collection={selectedCollection}
           filterOrder={filterOrder}
