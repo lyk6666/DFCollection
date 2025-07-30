@@ -27,10 +27,7 @@ def group_insights(insights):
 
         for ins in group:
             breakdown_set.add(ins['breakdown'])
-            if isinstance(ins['measure'], tuple):
-                measure_set.update(ins['measure'])
-            else:
-                measure_set.add(ins['measure'])
+            measure_set.add(ins['measure'])
             type_set.add(ins['type'])
 
         id += 1
