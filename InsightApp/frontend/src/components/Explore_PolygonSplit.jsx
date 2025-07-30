@@ -195,6 +195,14 @@ function aggregateInsightCountsByLevel(sectionData, level = 0, acc = {}) {
   return acc;
 }
 
+function interpolateColor(ratio, targetColor = [0, 123, 255]) {
+  const [r2, g2, b2] = targetColor;
+  const r = Math.round(255 + ratio * (r2 - 255));
+  const g = Math.round(255 + ratio * (g2 - 255));
+  const b = Math.round(255 + ratio * (b2 - 255));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionData, onInsightClick, onLayoutReady, selectedInsight }) {
   const [valueSequences, setValueSequences] = useState({});
   const [polygonSections, setPolygonSections] = useState(null);
@@ -371,6 +379,12 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
     onLayoutReady(layout);
   }, [polygonSections, onLayoutReady]);
 
+  const leafSegments = polygonSections?.segments
+    ? flattenSections(polygonSections.segments).filter(seg => seg._isLeaf)
+    : [];
+
+  const maxInsightCount = Math.max(...leafSegments.map(seg => seg.insights?.length || 0), 1);
+
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -443,20 +457,22 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
           </>
         )}
 
-        {/* Leaf polygons */}
-        {polygonSections?.segments &&
-          flattenSections(polygonSections.segments).map(seg => {
-            if (!seg._isLeaf) return null;
-            const hasInsights = Array.isArray(seg.insights) && seg.insights.length > 0;
-            const fillColor = hasInsights ? "white" : "#ddd";
-            return (
-              <polygon
-                key={seg.id}
-                points={seg.vertices.map(([x, y]) => `${x},${y}`).join(" ")}
-                fill={fillColor}
-                opacity={0.9}
-              />
-            );
+        {/* Leaf polygons colored by insight count gradient */}
+        {leafSegments.map(seg => {
+          const count = seg.insights?.length || 0;
+          const ratio = count / maxInsightCount;
+          const fillColor = interpolateColor(ratio, [60, 60, 60]); // White → Blue
+
+          return (
+            <polygon
+              key={seg.id}
+              points={seg.vertices.map(([x, y]) => `${x},${y}`).join(" ")}
+              fill={fillColor}
+              stroke="#aaa"
+              strokeWidth={0.5}
+              opacity={0.5}
+            />
+          );
         })}
 
         {/* Insight points */}
