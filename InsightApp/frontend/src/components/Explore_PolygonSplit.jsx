@@ -391,6 +391,16 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
     })
   );
 
+  // Step 1. Build color map from collection.measure_set
+  const colorPalette = d3.schemeCategory10;
+  const uniqueMeasureKeys = (collection?.measure_set || []).map(item =>
+    Array.isArray(item) ? item.join("|") : item
+  );
+  const colorMap = {};
+  uniqueMeasureKeys.forEach((key, i) => {
+    colorMap[key] = colorPalette[i % colorPalette.length];
+  });
+
   // ⛔ Hook declarations above ⛔ — now safe to return early
   if (!collection) return <div style={{ padding: 32 }}>Select a polygon to explore details.</div>;
 
@@ -454,16 +464,25 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
           flattenSections(polygonSections.segments).map(seg => {
             if (!seg._isLeaf || !Array.isArray(seg.insights)) return null;
             const points = generateInsightPoints(seg.vertices, seg.insights.length);
-            const baseRadius = 2;
+            const baseRadius = 2.5;
+
             return points.map(([x, y], i) => {
               const insight = seg.insights[i];
+              const rawValue = insight?.measure;
+
+              // Step 3. Stringify measureValue if it's a list
+              const key = Array.isArray(rawValue) ? rawValue.join("|") : rawValue;
+
+              // Step 4. Lookup color
+              const fillColor = colorMap[key] || "#ccc";  // fallback color
+
               return (
                 <circle
                   key={`${seg.id}-insight-${i}`}
                   cx={x}
                   cy={y}
                   r={baseRadius}
-                  fill="#444"
+                  fill={fillColor}
                   stroke="white"
                   strokeWidth={0.5}
                   style={{ cursor: "pointer" }}
@@ -475,8 +494,6 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
                     const relativeX = x + svgRect.left - exploreRect.left;
                     const relativeY = y + svgRect.top - exploreRect.top;
 
-                    console.log("clicked insight: ", insight);
-
                     onInsightClick?.({
                       ...insight,
                       position: { x: relativeX, y: relativeY }
@@ -486,6 +503,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
               );
             });
           })}
+
           
         {selectedInsight && selectedInsight.position && (
           <circle
