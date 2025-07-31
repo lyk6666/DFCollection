@@ -195,11 +195,12 @@ function aggregateInsightCountsByLevel(sectionData, level = 0, acc = {}) {
   return acc;
 }
 
-function interpolateColor(ratio, targetColor = [0, 123, 255]) {
+function interpolateColor(ratio, targetColor = [0, 123, 255], exponent = 3) {
   const [r2, g2, b2] = targetColor;
-  const r = Math.round(255 + ratio * (r2 - 255));
-  const g = Math.round(255 + ratio * (g2 - 255));
-  const b = Math.round(255 + ratio * (b2 - 255));
+  const adjustedRatio = Math.pow(ratio, exponent); // makes transition steeper
+  const r = Math.round(255 + adjustedRatio * (r2 - 255));
+  const g = Math.round(255 + adjustedRatio * (g2 - 255));
+  const b = Math.round(255 + adjustedRatio * (b2 - 255));
   return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -406,7 +407,18 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
   );
 
   // Step 1. Build color map from collection.measure_set
-  const colorPalette = d3.schemeCategory10;
+  const colorPalette = [
+    "#ffcf33ff",  // yellow
+    "#f781bf",  // pink
+    "#66c2a5",   // teal
+    "#e41a1c",  // red
+    "#377eb8",  // blue
+    "#4daf4a",  // green
+    "#984ea3",  // purple
+    "#ff7f00",  // orange
+    "#a65628",  // brown
+    "#999999",  // grey
+  ];
   const uniqueMeasureKeys = (collection?.measure_set || []).map(item =>
     Array.isArray(item) ? item.join("|") : item
   );
@@ -461,7 +473,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
         {leafSegments.map(seg => {
           const count = seg.insights?.length || 0;
           const ratio = count / maxInsightCount;
-          const fillColor = interpolateColor(ratio, [60, 60, 60]); // White → Blue
+          const fillColor = interpolateColor(ratio, [200, 200, 200]); // White → Blue
 
           return (
             <polygon
@@ -470,7 +482,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
               fill={fillColor}
               stroke="#aaa"
               strokeWidth={0.5}
-              opacity={0.5}
+              opacity={1}
             />
           );
         })}
@@ -499,7 +511,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
                   cy={y}
                   r={baseRadius}
                   fill={fillColor}
-                  stroke="white"
+                  stroke="black"
                   strokeWidth={0.5}
                   style={{ cursor: "pointer" }}
                   onClick={() => {
@@ -571,7 +583,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
               x2={x2}
               y2={y2}
               stroke={color}
-              strokeWidth={2}
+              strokeWidth={3}
               strokeDasharray={hasFilter ? null : "8 8"} // ← dashed line if no filter
               style={{ pointerEvents: "none" }}
             />
@@ -824,8 +836,24 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
           );
         })}
 
+        {/* Embedded Color Legend in SVG */}
+        {colorMap && (
+          <g transform={`translate(${15}, ${15})`}>
+            <rect x={-10} y={-5} width={120} height={20 * Object.keys(colorMap).length + 10} fill="white" stroke="#ccc" />
+            <text x={0} y={10} fontSize={10} fontWeight="bold" fill="#333">Measure Legend:</text>
+            {Object.entries(colorMap).map(([measureKey, color], i) => (
+              <g key={measureKey} transform={`translate(-5, ${15 * (i + 1)})`}>
+                <circle cx={6} cy={6} r={3} fill={color} stroke="#666" strokeWidth={0.5} />
+                <text x={16} y={9} fontSize={8} fill="#333">
+                  {measureKey.replace(/\|/g, ", ")}
+                </text>
+              </g>
+            ))}
+          </g>
+        )}
 
       </svg>
+      
     </div>
   );
 }
