@@ -62,11 +62,11 @@ function FullView({ width, height, data, setSelectedCollection, setFilterOrder, 
     svg.selectAll("*").remove();
 
     // Dimensions for centered square canvas
-    const PADDING = 20;
+    const PADDING = 10;
     const squareWidth = width - 2 * PADDING
     const squareHeight = height - 4 * PADDING
     const offsetX = (width - squareWidth) / 2;
-    const offsetY = 20
+    const offsetY = (height - squareHeight) / 4;
 
     // Full SVG background
     svg.append("rect")
@@ -134,7 +134,7 @@ function FullView({ width, height, data, setSelectedCollection, setFilterOrder, 
       const match = passesFilter(collection, selectedFilter);
       const finalColor = match ? color : "#ccc";
 
-      const scaledRadius = (collection.position.r ?? 0.04) * 300;
+      const scaledRadius = collection.position.r * Math.min(squareHeight, squareWidth) * 0.6;
       const scaledX = collection.position.x * squareWidth;
       const scaledY = collection.position.y * squareHeight;
 
