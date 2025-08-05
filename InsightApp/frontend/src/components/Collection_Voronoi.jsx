@@ -23,7 +23,7 @@ function getPolygonSides(filterCount) {
   return filterCount % 2 === 0 ? filterCount + 1 : filterCount;
 }
 
-function FullView({ width, height, data, setSelectedCollection, setFilterOrder, selectedFilter, selectedCollection }) {
+function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilterOrder, selectedFilter, selectedCollection }) {
   const ref = useRef();
 
   function passesFilter(collection, selectedFilter) {
@@ -62,11 +62,11 @@ function FullView({ width, height, data, setSelectedCollection, setFilterOrder, 
     svg.selectAll("*").remove();
 
     // Dimensions for centered square canvas
-    const PADDING = 10;
+    const PADDING = 0;
     const squareWidth = width - 2 * PADDING
-    const squareHeight = height - 4 * PADDING
-    const offsetX = (width - squareWidth) / 2;
-    const offsetY = (height - squareHeight) / 4;
+    const squareHeight = height * 0.9 - 2 * PADDING
+    const offsetX = 0;
+    const offsetY = 0;
 
     // Full SVG background
     svg.append("rect")
@@ -201,9 +201,9 @@ function FullView({ width, height, data, setSelectedCollection, setFilterOrder, 
         innerGroup.append("circle")
           .attr("cx", scaledX)
           .attr("cy", scaledY)
-          .attr("r", scaledRadius + 20)
+          .attr("r", scaledRadius + width * 0.03)
           .attr("stroke", "red")
-          .attr("stroke-width", 3)
+          .attr("stroke-width", width * 0.005)
           .attr("fill", "none")
           .attr("stroke-dasharray", "5 5")
           .attr("pointer-events", "none");
@@ -278,11 +278,11 @@ function FullView({ width, height, data, setSelectedCollection, setFilterOrder, 
           ref={ref}
           width={width}
           height={height} // subtract height of top row
-          style={{ display: "block", border: "1px solid #ccc" }}
+          style={{ display: "block", border: "0px solid #ccc" }}
         />
       </div>
     </div>
   );
 }
 
-export default FullView;
+export default CollectionVoronoi;

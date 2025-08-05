@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import ExplorePolygonSplit from "./Explore_PolygonSplit";
+import InsightPolygon from "./Insight_Polygon";
 import ExploreInsightDetails from "./Explore_InsightDetails";
 import ExploreInsightGlyphLayout from "./Explore_InsightGlyphLayout";
 

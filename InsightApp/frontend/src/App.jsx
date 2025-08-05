@@ -1,7 +1,26 @@
-import React, { useEffect, useState } from "react";
-import FullView from "./components/Fullview";
-import Explore from "./components/Explore";
-import Overview from "./components/Overview";
+import React, { useEffect, useState, useLayoutEffect, useRef, useCallback } from "react";
+import CollectionVoronoi from "./components/Collection_Voronoi";
+import CollectionSummary from "./components/Collection_Summary";
+import InsightPolygon from "./components/Insight_Polygon";
+import ExploreInsightGlyphLayout from "./components/Explore_InsightGlyphLayout";
+
+function useElementSize(ref) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setSize(entry.contentRect);
+    });
+
+    observer.observe(ref.current);
+
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return size;
+}
 
 function App() {
   const [collections, setCollections] = useState([]);
@@ -61,10 +80,10 @@ function App() {
   }, [selectedCollection, filterOrder]);
 
   // Fixed layout sizes
-  const overviewWidth = window.innerWidth * 0.35;
-  const exploreWidth = window.innerWidth * 0.65;
-  const fullViewWidth = overviewWidth;
-  const height = window.innerHeight;
+  // const overviewWidth = window.innerWidth * 0.35;
+  // const exploreWidth = window.innerWidth * 0.65;
+  // const fullViewWidth = overviewWidth;
+  // const height = window.innerHeight;
 
   // return (
   //   <div style={{ width: "100vw", height: "100vh", display: "flex", overflow: "hidden" }}>
@@ -110,18 +129,36 @@ function App() {
   //     </div>
   //   </div>
   // );
+
+
   // Adjustable values
-  const headerHeight = 5;         // %
-  const summaryWidth = 30;        // %
+  const headerHeight = 3;         // %
+  const summaryWidth = 25;        // %
   const summaryHeight = 30;       // %
   const polygonWidth = 40;        // %
-  const polygonHeight = 65;       // %
+  const polygonHeight =68;       // %
+  const paddingX = 0.25;      // vw
+  const paddingY = 0.5;      // vh
+
+  const summaryRef = useRef(null);
+  const polygonRef = useRef(null);
+  const insightSummaryRef = useRef(null);
+  const voronoiRef = useRef(null);
+  const similarityRef = useRef(null);
+  const historyRef = useRef(null);
+
+  const summarySize = useElementSize(summaryRef);
+  const polygonSize = useElementSize(polygonRef);
+  const insightSummarySize = useElementSize(insightSummaryRef);
+  const voronoiSize = useElementSize(voronoiRef);
+  const similaritySize = useElementSize(similarityRef);
+  const historySize = useElementSize(historyRef);
 
   // Computed values
   const insightSummaryWidth = 100 - summaryWidth - polygonWidth;
   const collectionVoronoiHeight = 100 - headerHeight - summaryHeight;
   const historyHeight = 100 - headerHeight - polygonHeight;
-  const insightSimilarityHeight = 100 - summaryHeight - historyHeight;
+  const insightSimilarityHeight = 100 - summaryHeight - historyHeight - headerHeight;
 
   const insightSummaryLeft = summaryWidth + polygonWidth;
   const insightSimilarityTop = headerHeight + summaryHeight;
@@ -133,19 +170,27 @@ function App() {
     flexDirection: 'column',
     alignItems: 'stretch',
     justifyContent: 'flex-start',
-    paddingTop: '4px',
-    paddingLeft: '4px',
-    paddingRight: '4px',
+    paddingTop: `${paddingY}vh`,
+    paddingLeft: `${paddingX}vw`,
+    paddingRight: `${paddingX}vw`,
     boxSizing: 'border-box',
     position: 'absolute',
     overflow: 'hidden'
   };
 
   const titleStyle = {
-    background: '#00bcd4',
-    color: 'white',
-    padding: '2px 6px',
-    fontSize: '6px',
+    background: '#ccccccff',
+    color: 'black',
+    padding: '0.5vh 0.5vw',
+    fontSize: '10px',
+  };
+
+  const contentRectStyle = {
+    flex: 1,
+    background: '#ffffff',
+    marginBottom: '4px',
+    border: '1px solid #e0e0e0',
+    boxShadow: '0 0 4px rgba(0,0,0,0.15)'
   };
 
   return (
@@ -165,10 +210,18 @@ function App() {
         position: 'absolute',
         top: `${headerHeight}%`, left: '0%',
         width: `${summaryWidth}%`, height: `${summaryHeight}%`,
-        background: '#dcdcdc'
+        background: '#ffffffff'
       }}>
         <div style={titleStyle}>Collection-Summary View</div>
-        <div style={{ flex: 1 }} />
+        <div style={contentRectStyle} ref={summaryRef}>
+          <CollectionSummary
+            insights={insights}
+            collections={collections}
+            width={summarySize.width}
+            height={summarySize.height} // 30px for header
+            onFilterSelected={handleFilterSelected}
+          />
+        </div>
       </div>
 
       {/* Insight-Polygon View */}
@@ -177,10 +230,26 @@ function App() {
         position: 'absolute',
         top: `${headerHeight}%`, left: `${summaryWidth}%`,
         width: `${polygonWidth}%`, height: `${polygonHeight}%`,
-        background: '#8bc34a'
+        background: '#ffffffff'
       }}>
         <div style={titleStyle}>Insight-Polygon View</div>
-        <div style={{ flex: 1 }} />
+        <div style={contentRectStyle} ref={polygonRef}>
+          {!selectedCollection ? (
+            <div style={{ padding: 32 }}>Select a collection to explore details.</div>
+          ) : (
+            <InsightPolygon
+              width={polygonSize.width}
+              height={polygonSize.height}
+              collection={selectedCollection}
+              filterOrder={filterOrder}
+              setFilterOrder={setFilterOrder}
+              sectionData={sectionData}
+              onInsightClick={() => {}}
+              onLayoutReady={() => {}}
+              selectedInsight={null}
+            />
+          )}
+        </div>
       </div>
 
       {/* Insight-Summary View */}
@@ -189,10 +258,10 @@ function App() {
         position: 'absolute',
         top: `${headerHeight}%`, left: `${insightSummaryLeft}%`,
         width: `${insightSummaryWidth}%`, height: `${summaryHeight}%`,
-        background: '#dcdcdc'
+        background: 'rgba(255, 255, 255, 1)'
       }}>
         <div style={titleStyle}>Insight-Summary View</div>
-        <div style={{ flex: 1 }} />
+        <div style={contentRectStyle} ref={insightSummaryRef}></div>
       </div>
 
       {/* Collection-Voronoi View */}
@@ -201,10 +270,20 @@ function App() {
         position: 'absolute',
         top: `${collectionVoronoiTop}%`, left: '0%',
         width: `${summaryWidth}%`, height: `${collectionVoronoiHeight}%`,
-        background: '#009688', color: 'white'
+        background: '#ffffffff', color: 'white'
       }}>
         <div style={titleStyle}>Collection-Voronoi View</div>
-        <div style={{ flex: 1 }} />
+        <div style={contentRectStyle} ref={voronoiRef}>
+          <CollectionVoronoi
+            width={voronoiSize.width}
+            height={voronoiSize.height}
+            data={collections}
+            setSelectedCollection={setSelectedCollection}
+            setFilterOrder={setFilterOrder}
+            selectedFilter={selectedOverviewFilter}
+            selectedCollection={selectedCollection}
+          />
+        </div>
       </div>
 
       {/* Insight-Similarity View */}
@@ -213,10 +292,12 @@ function App() {
         position: 'absolute',
         top: `${insightSimilarityTop}%`, left: `${insightSummaryLeft}%`,
         width: `${insightSummaryWidth}%`, height: `${insightSimilarityHeight}%`,
-        background: '#757575', color: 'white'
+        background: '#ffffffff', color: 'white'
       }}>
         <div style={titleStyle}>Insight-Similarity View</div>
-        <div style={{ flex: 1 }} />
+        <div style={contentRectStyle} ref={similarityRef}>
+
+        </div>
       </div>
 
       {/* History View */}
@@ -225,10 +306,10 @@ function App() {
         position: 'absolute',
         top: `${historyTop}%`, left: `${summaryWidth}%`,
         width: `${polygonWidth + insightSummaryWidth}%`, height: `${historyHeight}%`,
-        background: '#9e9e9e', color: 'white'
+        background: '#ffffffff', color: 'white'
       }}>
         <div style={titleStyle}>History View</div>
-        <div style={{ flex: 1 }} />
+        <div style={contentRectStyle} ref={historyRef}></div>
       </div>
     </div>
   );

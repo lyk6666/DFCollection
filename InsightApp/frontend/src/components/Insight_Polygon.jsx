@@ -204,7 +204,7 @@ function interpolateColor(ratio, targetColor = [0, 123, 255], exponent = 3) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionData, onInsightClick, onLayoutReady, selectedInsight }) {
+function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder, sectionData, onInsightClick, onLayoutReady, selectedInsight }) {
   const [valueSequences, setValueSequences] = useState({});
   const [polygonSections, setPolygonSections] = useState(null);
 
@@ -220,16 +220,20 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
 
 
   // Responsive layout parameters
-  const width = 700;
-  const height = width;
-  const size = width;
+  const size = Math.min(width, height);
   const radius = size / 2 - size * 0.12;
   const sides = getPolygonSides(filterOrder.length);
-  const centerX = size / 2;
-  const centerY = size / 2;
+  const centerX = width / 2;
+  const centerY = height / 2;
   const angleStep = (2 * Math.PI) / sides;
-  const fontSize = 20;
-  const labelOffset = size * 0.07;
+
+  const fontSize = size * 0.025;
+  const labelOffset = size * 0.08;
+  const _baseRadius = size * 0.004;
+  const _barWidth = size * 0.015;
+  const _barGap = size * 0.004;
+  const _maxBarHeight = size * 0.1;
+
   const svgRef = useRef(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [insightCounts, setInsightCounts] = useState({});
@@ -358,9 +362,6 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
     if (!polygonSections || !svgRef.current || !onLayoutReady) return;
 
     const svgRect = svgRef.current.getBoundingClientRect();
-    const exploreSVG = document.querySelector("#explore-overlay-svg");
-    const exploreRect = exploreSVG.getBoundingClientRect();
-
     const layout = [];
 
     flattenSections(polygonSections.segments).forEach(seg => {
@@ -371,14 +372,15 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
         const [x, y] = points[i];
         layout.push({
           ...insight,
-          x: x + svgRect.left - exploreRect.left,
-          y: y + svgRect.top - exploreRect.top
+          x: x + svgRect.left,
+          y: y + svgRect.top
         });
       });
     });
 
     onLayoutReady(layout);
   }, [polygonSections, onLayoutReady]);
+
 
   const leafSegments = polygonSections?.segments
     ? flattenSections(polygonSections.segments).filter(seg => seg._isLeaf)
@@ -395,8 +397,6 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
       setContainerWidth(rect.width);
     }
   }, [collection]);  // 🔥 recompute when collection changes
-
-  const maxBarHeight = 40; // Max bar height in pixels
 
   // Compute max count per edge for normalization
   const maxCountsPerEdge = Object.fromEntries(
@@ -431,7 +431,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
   if (!collection) return <div style={{ padding: 32 }}>Select a polygon to explore details.</div>;
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
       <svg
         ref={svgRef}
         style={{
@@ -444,7 +444,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
       >
         {/* Arrowhead marker definition */}
         <defs>
-          <marker id="arrowhead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <marker id="arrowhead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth={size * 0.02} markerHeight={size * 0.02} orient="auto">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="lightgrey" />
           </marker>
         </defs>
@@ -492,7 +492,7 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
           flattenSections(polygonSections.segments).map(seg => {
             if (!seg._isLeaf || !Array.isArray(seg.insights)) return null;
             const points = generateInsightPoints(seg.vertices, seg.insights.length);
-            const baseRadius = 2.5;
+            const baseRadius = _baseRadius;
 
             return points.map(([x, y], i) => {
               const insight = seg.insights[i];
@@ -516,11 +516,9 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
                   style={{ cursor: "pointer" }}
                   onClick={() => {
                     const svgRect = svgRef.current.getBoundingClientRect();
-                    const exploreSVG = document.querySelector("#explore-overlay-svg");
-                    const exploreRect = exploreSVG.getBoundingClientRect();
 
-                    const relativeX = x + svgRect.left - exploreRect.left;
-                    const relativeY = y + svgRect.top - exploreRect.top;
+                    const relativeX = x + svgRect.left;
+                    const relativeY = y + svgRect.top;
 
                     onInsightClick?.({
                       ...insight,
@@ -634,9 +632,9 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
           const hasBars = Object.values(counts).some(v => v > 0);
           if (!hasBars) return null;
 
-          const barWidth = 8;
-          const barGap = 2;
-          const maxBarHeight = 60;
+          const barWidth = _barWidth;
+          const barGap = _barGap;
+          const maxBarHeight = _maxBarHeight;
           const maxCount = Math.max(...Object.values(counts), 1);
           const maxIndex = Math.max(...Object.keys(counts).map(Number), 0);
           const totalBarWidth = (barWidth + barGap) * (maxIndex + 1);
@@ -839,12 +837,12 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
         {/* Embedded Color Legend in SVG */}
         {colorMap && (
           <g transform={`translate(${15}, ${15})`}>
-            <rect x={-10} y={-5} width={120} height={20 * Object.keys(colorMap).length + 10} fill="white" stroke="#ccc" />
-            <text x={0} y={10} fontSize={10} fontWeight="bold" fill="#333">Measure Legend:</text>
+            <rect x={-width*0.01} y={-height*0.005} width={size * 0.2} height={size * 0.04 * Object.keys(colorMap).length} fill="white" stroke="#ccc" />
+            <text x={0} y={10} fontSize={size * 0.02} fontWeight="bold" fill="#333">Measure Legend:</text>
             {Object.entries(colorMap).map(([measureKey, color], i) => (
               <g key={measureKey} transform={`translate(-5, ${15 * (i + 1)})`}>
                 <circle cx={6} cy={6} r={3} fill={color} stroke="#666" strokeWidth={0.5} />
-                <text x={16} y={9} fontSize={8} fill="#333">
+                <text x={16} y={9} fontSize={size * 0.016} fill="#333">
                   {measureKey.replace(/\|/g, ", ")}
                 </text>
               </g>
@@ -858,4 +856,4 @@ function ExplorePolygonSplit({ collection, filterOrder, setFilterOrder, sectionD
   );
 }
 
-export default ExplorePolygonSplit;
+export default InsightPolygon;
