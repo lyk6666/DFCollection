@@ -229,7 +229,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
   const fontSize = size * 0.025;
   const labelOffset = size * 0.08;
-  const _baseRadius = size * 0.004;
+  const _baseRadius = size * 0.003;
   const _barWidth = size * 0.015;
   const _barGap = size * 0.004;
   const _maxBarHeight = size * 0.1;
@@ -427,6 +427,47 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
     colorMap[key] = colorPalette[i % colorPalette.length];
   });
 
+
+  const yAxisRefs = useRef([]);
+  const xAxisRefs = useRef([]);
+  useEffect(() => {
+    const chartHeight = 80;
+    const chartWidth = 60;
+
+    points.forEach(([_, __], i) => {
+      const counts = insightCounts[i] || {};
+      if (!Object.values(counts).some(v => v > 0)) return;
+
+      const data = Object.entries(counts).map(([level, count]) => ({
+        name: `L${level}`,
+        value: count,
+      }));
+
+      const maxCount = d3.max(data, d => d.value) || 1;
+
+      const yScale = d3.scaleLinear()
+        .domain([0, maxCount])
+        .range([chartHeight, 0]);
+
+      const xScale = d3.scaleBand()
+        .domain(data.map(d => d.name))
+        .range([0, chartWidth])
+        .padding(0.1);
+
+      const yAxis = d3.axisRight(yScale).ticks(4).tickSize(3).tickPadding(2);
+      const xAxis = d3.axisBottom(xScale).tickSize(3).tickPadding(4);
+
+      if (yAxisRefs.current[i]) {
+        d3.select(yAxisRefs.current[i]).call(yAxis);
+      }
+
+      if (xAxisRefs.current[i]) {
+        d3.select(xAxisRefs.current[i]).call(xAxis);
+      }
+    });
+  }, [points, insightCounts]);
+
+
   // ⛔ Hook declarations above ⛔ — now safe to return early
   if (!collection) return <div style={{ padding: 32 }}>Select a polygon to explore details.</div>;
 
@@ -450,7 +491,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         </defs>
 
         {/* Draw circular arrow */}
-        {lastFilteredIndex > 0 && (
+        {/* {lastFilteredIndex > 0 && (
           <>
             <path
               id="arcPathId"
@@ -467,7 +508,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
               </textPath>
             </text>
           </>
-        )}
+        )} */}
 
         {/* Leaf polygons colored by insight count gradient */}
         {leafSegments.map(seg => {
@@ -545,27 +586,30 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         )}
 
         {/* Split lines with level-based fading */}
-        {polygonSections?.split_lines && polygonSections.split_lines.map((line, i) => {
-          const { color, level, index_in_level, coordinates } = line;
-          const maxIndex = polygonSections.split_lines
-            .filter(l => l.level === level)
-            .reduce((max, l) => Math.max(max, l.index_in_level ?? 0), 0);
+        {polygonSections?.split_lines
+          ?.sort((a, b) => b.level - a.level)  // lower level (shallower) drawn last (on top)
+          .map((line, i) => {
+            const { color, level, index_in_level, coordinates } = line;
+            const maxIndex = polygonSections.split_lines
+              .filter(l => l.level === level)
+              .reduce((max, l) => Math.max(max, l.index_in_level ?? 0), 0);
 
-          const fadedColor = lightenRGBColor(color, index_in_level, maxIndex);
+            const fadedColor = lightenRGBColor(color, index_in_level, maxIndex);
 
-          return (
-            <line
-              key={`cut-${i}`}
-              x1={coordinates[0][0]}
-              y1={coordinates[0][1]}
-              x2={coordinates[1][0]}
-              y2={coordinates[1][1]}
-              stroke={fadedColor}
-              strokeWidth={2}
-              opacity={0.9}
-            />
-          );
-        })}
+            return (
+              <line
+                key={`cut-${i}`}
+                x1={coordinates[0][0]}
+                y1={coordinates[0][1]}
+                x2={coordinates[1][0]}
+                y2={coordinates[1][1]}
+                stroke={fadedColor}
+                strokeWidth={2}
+                opacity={0.9}
+              />
+            );
+          })}
+
 
         {/* Colored sides with dashed fallback */}
         {points.map(([x1, y1], i) => {
@@ -588,124 +632,84 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           );
         })}
 
-        {points.map(([x1, y1], i) => {
-          const [x2, y2] = points[(i + 1) % sides];
-          const dx = x2 - x1;
-          const dy = y2 - y1;
-          const length = Math.sqrt(dx * dx + dy * dy);
-          const mx = (x1 + x2) / 2;
-          const my = (y1 + y2) / 2;
+        {/* barchart part */}
+{points.map(([x1, y1], i) => {
+  const [x2, y2] = points[(i + 1) % sides];
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
 
-          // Get edge angle
-          const angleRad = Math.atan2(dy, dx);
-          let angleDeg = angleRad * (180 / Math.PI);
+  let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+  if (angleDeg > 90 || angleDeg < -90) angleDeg += 180;
 
-          // Flip logic (same as label)
-          let flip = false;
-          if (angleDeg > 90 || angleDeg < -90) {
-            flip = true;
-            angleDeg += 180;
-          }
+  const nx = dy / length;
+  const ny = -dx / length;
+  const toCenterX = centerX - mx;
+  const toCenterY = centerY - my;
+  const inward = nx * toCenterX + ny * toCenterY < 0;
+  const offsetX = mx + nx * labelOffset * 0;
+  const offsetY = my + ny * labelOffset * 0;
 
-          // Normal vector (outward)
-          let nx = dy / length;
-          let ny = -dx / length;
-          const toCenterX = centerX - mx;
-          const toCenterY = centerY - my;
-          if (nx * toCenterX + ny * toCenterY > 0) {
-            nx *= -1;
-            ny *= -1;
-          }
+  const counts = insightCounts[i] || {};
+  if (!Object.values(counts).some(v => v > 0)) return null;
 
-          const barOffset = labelOffset * 1.2;
-          const disR = 1.25
-          // Step along the edge toward the second point (x2, y2) for bars
-          const edgeShiftRatio = 0.75;  // Adjust as needed
-          const shiftedX = mx * (1 - edgeShiftRatio) + x2 * edgeShiftRatio;
-          const shiftedY = my * (1 - edgeShiftRatio) + y2 * edgeShiftRatio;
+  const data = Object.entries(counts).map(([level, count]) => ({
+    name: `L${level}`,
+    value: count
+  }));
 
-          // Then offset perpendicular outward/inward based on flip
-          const centerXOffset = shiftedX + nx * (flip ? disR * barOffset : (disR - 1) * barOffset);
-          const centerYOffset = shiftedY + ny * (flip ? disR * barOffset : (disR - 1) * barOffset);
+  const maxCount = d3.max(data, d => d.value) || 1;
 
-          const counts = insightCounts[i] || {};
-          const hasBars = Object.values(counts).some(v => v > 0);
-          if (!hasBars) return null;
+  const chartWidth = 60;
+  const chartHeight = 80;
+  const barPadding = 5;
+  const barWidth = (chartWidth - barPadding * (data.length - 1)) / data.length;
 
-          const barWidth = _barWidth;
-          const barGap = _barGap;
-          const maxBarHeight = _maxBarHeight;
-          const maxCount = Math.max(...Object.values(counts), 1);
-          const maxIndex = Math.max(...Object.keys(counts).map(Number), 0);
-          const totalBarWidth = (barWidth + barGap) * (maxIndex + 1);
+  const yScale = d3.scaleLinear()
+    .domain([0, maxCount])
+    .range([chartHeight, 0]);
 
-          const originX = centerXOffset;
-          const originY = centerYOffset;
+  return (
+    <g
+      key={`bar-${i}`}
+      transform={`translate(${offsetX}, ${offsetY}) rotate(${angleDeg})`}
+    >
+      {/* Bars */}
+      {data.map((d, index) => {
+        const height = chartHeight - yScale(d.value);
+        return (
+          <rect
+            key={index}
+            x={index * (barWidth + barPadding)}
+            y={yScale(d.value)}
+            width={barWidth}
+            height={height}
+            fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
+            stroke="white"
+            strokeWidth={0.5}
+          />
+        );
+      })}
 
-          return (
-          <>
-            <g
-              key={`bar-${i}`}
-              transform={`translate(${originX},${originY}) rotate(${angleDeg})`}
-            >
+      {/* D3 Axis group (right side) */}
+      <g>
+        <g
+          className="y-axis"
+          ref={el => (yAxisRefs.current[i] = el)}
+          transform={`translate(${chartWidth}, 0)`}
+        />
+        <g
+          className="x-axis"
+          ref={el => (xAxisRefs.current[i] = el)}
+          transform={`translate(0, ${chartHeight})`}
+        />
+      </g>
+    </g>
+  );
+})}
 
-              {/* Y-axis */}
-              <line
-                x1={flip ? totalBarWidth / 2 + 1 : -totalBarWidth / 2 - 1}
-                y1={5}
-                x2={flip ? totalBarWidth / 2 + 1: -totalBarWidth / 2 - 1}
-                y2={-maxBarHeight}
-                stroke="#aaa"
-                strokeWidth={1}
-                opacity={1}
-                markerEnd="url(#arrowhead)"
-              />
-
-              {/* Max value label */}
-              <text
-                x={flip ? totalBarWidth / 2 + 4 : -totalBarWidth / 2 - 4}
-                y={-maxBarHeight}
-                fontSize={10}
-                fill="#666"
-                textAnchor={flip ? "start" : "end"}
-                dominantBaseline="middle"
-              >
-                {maxCount}
-              </text>
-              {/* X-axis */}
-              <line
-                x1={-totalBarWidth / 2 - 5}
-                y1={0}
-                x2={totalBarWidth / 2 + 5}
-                y2={0}
-                stroke="#aaa"
-                strokeWidth={1}
-                opacity={1}
-              />
-              {/* Bars */}
-              {Object.entries(counts).map(([idxStr, count]) => {
-                const index = parseInt(idxStr);
-                const height = (count / maxCount) * maxBarHeight;
-                const color = lightenRGBColor(filterColors[i % filterColors.length], index, maxIndex);
-
-                const bx = index * (barWidth + barGap) - totalBarWidth / 2;
-                return (
-                  <rect
-                    key={`bar-${i}-${index}`}
-                    x={bx}
-                    y={-height}
-                    width={barWidth}
-                    height={height}
-                    fill={color}
-                    stroke="white"
-                    strokeWidth={0.5}
-                    opacity={0.9}
-                  />
-                );
-              })}
-            </g></>
-          );
-        })}
 
         {/* Attribute + value sequence labels */}
         {points.map(([x1, y1], i) => {
