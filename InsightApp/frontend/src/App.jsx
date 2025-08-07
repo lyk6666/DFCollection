@@ -2,7 +2,7 @@ import React, { useEffect, useState, useLayoutEffect, useRef, useCallback } from
 import CollectionVoronoi from "./components/Collection_Voronoi";
 import CollectionSummary from "./components/Collection_Summary";
 import InsightPolygon from "./components/Insight_Polygon";
-import ExploreInsightGlyphLayout from "./components/Explore_InsightGlyphLayout";
+import InsightSimilarity from "./components/Insight_Similarity";
 
 function useElementSize(ref) {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -133,7 +133,7 @@ function App() {
 
   // Adjustable values
   const headerHeight = 3;         // %
-  const summaryWidth = 25;        // %
+  const summaryWidth = 30;        // %
   const summaryHeight = 30;       // %
   const polygonWidth = 40;        // %
   const polygonHeight =68;       // %
@@ -261,7 +261,9 @@ function App() {
         background: 'rgba(255, 255, 255, 1)'
       }}>
         <div style={titleStyle}>Insight-Summary View</div>
-        <div style={contentRectStyle} ref={insightSummaryRef}></div>
+        <div style={contentRectStyle} ref={insightSummaryRef}>
+
+        </div>
       </div>
 
       {/* Collection-Voronoi View */}
@@ -296,7 +298,17 @@ function App() {
       }}>
         <div style={titleStyle}>Insight-Similarity View</div>
         <div style={contentRectStyle} ref={similarityRef}>
-
+          <InsightSimilarity
+            width={similaritySize.width}
+            height={similaritySize.height}
+            collection={selectedCollection}
+            onInsightClick={() => {}}
+            onLayoutReady={() => {}}
+            onLegendReady={() => {}}
+            onTypeLegendReady={() => {}}
+            onLargestReady={() => {}}
+            polygonLayout={[]} // Pass empty array for now
+          />
         </div>
       </div>
 

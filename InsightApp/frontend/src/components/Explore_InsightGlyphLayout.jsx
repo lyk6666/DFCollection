@@ -1,6 +1,6 @@
 
 import React, {useState} from "react";
-import ExploreInsightGlyph from "./Explore_InsightGlyph";  // ✅ import your original component
+import ExploreInsightGlyph from "./Insight_Similarity";  // ✅ import your original component
 import InsightMiniChart, {HorizontalMiniChartGroup} from "./Explore_InsightMiniCharts";
 
 function ExploreInsightGlyphLayout({ collection, onInsightClick, onLayoutReady, polygonLayout }) {

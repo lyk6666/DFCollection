@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 
-function ExploreInsightGlyph({ collection, onInsightClick, onLayoutReady, onLegendReady, onTypeLegendReady, onLargestReady, polygonLayout }) {
+function InsightSimilarity({ width, height, collection, onInsightClick, onLayoutReady, onLegendReady, onTypeLegendReady, onLargestReady, polygonLayout }) {
   const svgRef = useRef(null);
-  const width = 390;
-  const height = 440;
   const [positionedInsights, setPositionedInsights] = useState([]);
   
   function isMatchingInsight(a, b) {
@@ -150,13 +148,14 @@ function ExploreInsightGlyph({ collection, onInsightClick, onLayoutReady, onLege
 
       {/* Draw grid */}
       {[...Array(21)].map((_, i) => {
-        const pos = i * (height / 20);
+        const posH = i * (width / 20);
+        const posW = i * (height / 20);
         return (
           <g key={i}>
             {/* Vertical lines */}
-            <line x1={pos} y1={0} x2={pos} y2={height} stroke="#ddd" strokeWidth={1} />
+            <line x1={posH} y1={0} x2={posH} y2={height} stroke="#ddd" strokeWidth={1} />
             {/* Horizontal lines */}
-            <line x1={0} y1={pos} x2={width} y2={pos} stroke="#ddd" strokeWidth={1} />
+            <line x1={0} y1={posW} x2={width} y2={posW} stroke="#ddd" strokeWidth={1} />
           </g>
         );
       })}
@@ -219,5 +218,4 @@ Measure: ${Array.isArray(insight.measure) ? insight.measure.join(", ") : insight
   );
 }
 
-export default ExploreInsightGlyph;
-
+export default InsightSimilarity;
