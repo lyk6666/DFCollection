@@ -204,6 +204,51 @@ function interpolateColor(ratio, targetColor = [0, 123, 255], exponent = 3) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+function getFittedFontSize(text, maxFontSize, barWidth, fontFamily = 'sans-serif') {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  // Start with max font size
+  ctx.font = `${maxFontSize}px ${fontFamily}`;
+  let textWidth = ctx.measureText(text).width;
+
+  // If it already fits, return max
+  if (textWidth <= barWidth) return maxFontSize;
+
+  // Binary search to find optimal font size
+  let min = 3;
+  let max = maxFontSize;
+  let bestFit = min;
+
+  while (min <= max) {
+    const mid = Math.floor((min + max) / 2);
+    ctx.font = `${mid}px ${fontFamily}`;
+    textWidth = ctx.measureText(text).width;
+
+    if (textWidth <= barWidth) {
+      bestFit = mid;
+      min = mid + 1;
+    } else {
+      max = mid - 1;
+    }
+  }
+
+  return bestFit;
+}
+
+function getValueLabelsFromSequence(sequence) {
+  if (!Array.isArray(sequence)) return [];
+
+  // Case 1: Grouped format — return array of group names only
+  if (typeof sequence[0] === "object" && sequence[0] !== null && "group" in sequence[0]) {
+    return sequence.map(groupObj => groupObj.group);
+  }
+
+  // Case 2: Already a flat array of strings — return as-is
+  return sequence;
+}
+
+
 function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder, sectionData, onInsightClick, onLayoutReady, selectedInsight }) {
   const [valueSequences, setValueSequences] = useState({});
   const [polygonSections, setPolygonSections] = useState(null);
@@ -228,11 +273,11 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   const angleStep = (2 * Math.PI) / sides;
 
   const fontSize = size * 0.025;
-  const labelOffset = size * 0.08;
+  const labelOffset = size * 0.16;
   const _baseRadius = size * 0.003;
-  const _barWidth = size * 0.015;
-  const _barGap = size * 0.004;
-  const _maxBarHeight = size * 0.1;
+  // const _barWidth = size * 0.015;
+  // const _barGap = size * 0.004;
+  // const _maxBarHeight = size * 0.1;
 
   const svgRef = useRef(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -428,44 +473,56 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   });
 
 
-  const yAxisRefs = useRef([]);
-  const xAxisRefs = useRef([]);
-  useEffect(() => {
-    const chartHeight = 80;
-    const chartWidth = 60;
+  // const yAxisRefs = useRef([]);
+  // const xAxisRefs = useRef([]);
+  // useEffect(() => {
+  //   points.forEach(([x1, y1], i) => {
+  //     const [x2, y2] = points[(i + 1) % sides];
+  //     const dx = x2 - x1;
+  //     const dy = y2 - y1;
+  //     const length = Math.sqrt(dx * dx + dy * dy);
 
-    points.forEach(([_, __], i) => {
-      const counts = insightCounts[i] || {};
-      if (!Object.values(counts).some(v => v > 0)) return;
+  //     const chartWidth = length * 0.9;
+  //     const chartHeight = length * 0.2;
 
-      const data = Object.entries(counts).map(([level, count]) => ({
-        name: `L${level}`,
-        value: count,
-      }));
+  //     const counts = insightCounts[i] || {};
+  //     if (!Object.values(counts).some(v => v > 0)) return;
 
-      const maxCount = d3.max(data, d => d.value) || 1;
+  //     const data = Object.entries(counts).map(([level, count]) => ({
+  //       name: `L${level}`,
+  //       value: count,
+  //     }));
 
-      const yScale = d3.scaleLinear()
-        .domain([0, maxCount])
-        .range([chartHeight, 0]);
+  //     const maxCount = d3.max(data, d => d.value) || 1;
 
-      const xScale = d3.scaleBand()
-        .domain(data.map(d => d.name))
-        .range([0, chartWidth])
-        .padding(0.1);
+  //     const yScale = d3.scaleLinear()
+  //       .domain([0, maxCount])
+  //       .range([chartHeight, 0]);
 
-      const yAxis = d3.axisRight(yScale).ticks(4).tickSize(3).tickPadding(2);
-      const xAxis = d3.axisBottom(xScale).tickSize(3).tickPadding(4);
+  //     const xScale = d3.scaleBand()
+  //       .domain(data.map(d => d.name))
+  //       .range([0, chartWidth])
+  //       .padding(0.1);
 
-      if (yAxisRefs.current[i]) {
-        d3.select(yAxisRefs.current[i]).call(yAxis);
-      }
+  //     const yAxis = d3.axisRight(yScale)
+  //       .ticks(4)
+  //       .tickSize(3)
+  //       .tickPadding(2);
 
-      if (xAxisRefs.current[i]) {
-        d3.select(xAxisRefs.current[i]).call(xAxis);
-      }
-    });
-  }, [points, insightCounts]);
+  //     const xAxis = d3.axisBottom(xScale)
+  //       .tickSize(3)
+  //       .tickPadding(4);
+
+  //     if (yAxisRefs.current[i]) {
+  //       d3.select(yAxisRefs.current[i]).call(yAxis);
+  //     }
+
+  //     if (xAxisRefs.current[i]) {
+  //       d3.select(xAxisRefs.current[i]).call(xAxis);
+  //     }
+  //   });
+  // }, [points, insightCounts]);
+
 
 
   // ⛔ Hook declarations above ⛔ — now safe to return early
@@ -633,226 +690,221 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         })}
 
         {/* barchart part */}
-{points.map(([x1, y1], i) => {
-  const [x2, y2] = points[(i + 1) % sides];
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const length = Math.sqrt(dx * dx + dy * dy);
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
-
-  let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-  if (angleDeg > 90 || angleDeg < -90) angleDeg += 180;
-
-  const nx = dy / length;
-  const ny = -dx / length;
-  const toCenterX = centerX - mx;
-  const toCenterY = centerY - my;
-  const inward = nx * toCenterX + ny * toCenterY < 0;
-  const offsetX = mx + nx * labelOffset * 0;
-  const offsetY = my + ny * labelOffset * 0;
-
-  const counts = insightCounts[i] || {};
-  if (!Object.values(counts).some(v => v > 0)) return null;
-
-  const data = Object.entries(counts).map(([level, count]) => ({
-    name: `L${level}`,
-    value: count
-  }));
-
-  const maxCount = d3.max(data, d => d.value) || 1;
-
-  const chartWidth = 60;
-  const chartHeight = 80;
-  const barPadding = 5;
-  const barWidth = (chartWidth - barPadding * (data.length - 1)) / data.length;
-
-  const yScale = d3.scaleLinear()
-    .domain([0, maxCount])
-    .range([chartHeight, 0]);
-
-  return (
-    <g
-      key={`bar-${i}`}
-      transform={`translate(${offsetX}, ${offsetY}) rotate(${angleDeg})`}
-    >
-      {/* Bars */}
-      {data.map((d, index) => {
-        const height = chartHeight - yScale(d.value);
-        return (
-          <rect
-            key={index}
-            x={index * (barWidth + barPadding)}
-            y={yScale(d.value)}
-            width={barWidth}
-            height={height}
-            fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
-            stroke="white"
-            strokeWidth={0.5}
-          />
-        );
-      })}
-
-      {/* D3 Axis group (right side) */}
-      <g>
-        <g
-          className="y-axis"
-          ref={el => (yAxisRefs.current[i] = el)}
-          transform={`translate(${chartWidth}, 0)`}
-        />
-        <g
-          className="x-axis"
-          ref={el => (xAxisRefs.current[i] = el)}
-          transform={`translate(0, ${chartHeight})`}
-        />
-      </g>
-    </g>
-  );
-})}
-
-
-        {/* Attribute + value sequence labels */}
         {points.map(([x1, y1], i) => {
-          const attr = filterOrder[i];
-          const color = attr ? filterColors[i % filterColors.length] : "#000";
-          
           const [x2, y2] = points[(i + 1) % sides];
-          const mx = (x1 + x2) / 2;
-          const my = (y1 + y2) / 2;
           const dx = x2 - x1;
           const dy = y2 - y1;
           const length = Math.sqrt(dx * dx + dy * dy);
-          const nx = -(dy / length);
-          const ny = dx / length;
+          const mx = (x1 + x2) / 2;
+          const my = (y1 + y2) / 2;
 
-          let rawValues = valueSequences[attr] || [];
+          const tx = dx / length;            // Tangent vector
+          const ty = dy / length;
+          const nx = dy / length;            // Normal vector
+          const ny = -dx / length;
 
-          if (Array.isArray(rawValues) && typeof rawValues[0] === "object" && rawValues[0].group) {
-            rawValues = rawValues.map(groupObj => groupObj.group);
-          }
 
-          const indexedValues = rawValues.map((val, idx) => `${idx + 1}-${val}`);
+          const counts = insightCounts[i] || {};
+          if (!Object.values(counts).some(v => v > 0)) return null;
 
-          // Wrap logic: group indexed items by pixel width
-          const fontSizeScaled = fontSize * 0.75;
-          const edgeLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-          const maxWidth = edgeLength * 0.75;
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          ctx.font = `${fontSizeScaled}px sans-serif`;
+          const data = Object.entries(counts).map(([level, count]) => ({
+            name: `L${level}`,
+            value: count
+          }));
 
-          const lines = [];
-          let currentLine = [];
+          const maxCount = d3.max(data, d => d.value) || 1;
+          const chartWidth = length * 0.9
+          const chartHeight = length * 0.2;
+          const barPadding = 5;
+          const barWidth = (chartWidth - barPadding * (data.length - 1)) / data.length;
 
-          indexedValues.forEach((word) => {
-            const testLine = [...currentLine, word].join(", ");
-            const { width } = ctx.measureText(testLine);
-            if (width > maxWidth && currentLine.length > 0) {
-              lines.push(currentLine);
-              currentLine = [word];
-            } else {
-              currentLine.push(word);
-            }
-          });
-          if (currentLine.length) lines.push(currentLine);
+          // const toCenterX = centerX - mx;
+          // const toCenterY = centerY - my;
+          // const inward = nx * toCenterX + ny * toCenterY < 0;
 
-          const totalLines = 1 + lines.length;
-          const labelDistanceMultiplier = 0.5 + totalLines * 0.2;
+          let flip = 1
+          let flipLabel = 1;
+          let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+          if (angleDeg > 90 || angleDeg < -90) {
+            // angleDeg += 180;
+            // flip = -1;
+            flipLabel = -1
+          } 
 
-          // Step along the edge toward the first point (x1, y1)
-          const edgeShiftRatio = 0.2;  // adjust this value to move more or less along the edge
-          const shiftedX = mx * (1 - edgeShiftRatio) + x1 * edgeShiftRatio;
-          const shiftedY = my * (1 - edgeShiftRatio) + y1 * edgeShiftRatio;
+          let edgeOffset = 0
+          let normOffset = chartHeight * 0.6;
 
-          // Now offset perpendicular to the edge as before
-          const lx = shiftedX - nx * labelOffset * labelDistanceMultiplier;
-          const ly = shiftedY - ny * labelOffset * labelDistanceMultiplier;
+          const offsetX = mx - flip * tx * (chartWidth / 2) + flip * nx * (chartHeight / 2) - edgeOffset * tx + normOffset * nx;
+          const offsetY = my - flip * ty * (chartWidth / 2) + flip *  ny * (chartHeight / 2) - edgeOffset * ty + normOffset * ny;
 
-          const angleRaw = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-          let angle = angleRaw;
-          if (angle > 90) angle -= 180;
-          if (angle < -90) angle += 180;
+
+          const yScale = d3.scaleLinear()
+            .domain([0, maxCount])
+            .range([chartHeight, 0]);
+
+          const valueLabels = getValueLabelsFromSequence(valueSequences?.[filterOrder[i]]);
+          // console.log("Value labels:", valueLabels);  
 
           return (
-            <g key={attr || i}>
-              {attr && (
-                <>
-                  <text
-                    x={lx}
-                    y={ly}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    transform={`rotate(${angle},${lx},${ly})`}
-                    style={{
-                      cursor: "pointer",
-                      userSelect: "none",
-                      opacity: draggedIndex === i ? 0.4 : 1,
-                    }}
-                    onClick={() => {
-                      if (draggedIndex === null) {
-                        setDraggedIndex(i);
-                      } else {
-                        setDraggedIndex(null);
-                      }
-                    }}
-                    onMouseEnter={() => {
-                      if (draggedIndex === null || draggedIndex === i) return;
-                      const newOrder = [...filterOrder];
-                      const draggedItem = newOrder.splice(draggedIndex, 1)[0];
-                      newOrder.splice(i, 0, draggedItem);
-                      setFilterOrder(newOrder);
-                      setDraggedIndex(i);
-                    }}
-                  >
-                    {/* Label */}
-                    <tspan
-                      x={lx}
-                      dy={-lines.length * fontSize * 0.5}
-                      fontSize={fontSize}
-                      fontWeight="bold"
-                      fill={color}
-                    >
-                      {attr}:
-                    </tspan>
+            <g
+              key={`bar-${i}`}
+              transform={`translate(${offsetX}, ${offsetY}) rotate(${angleDeg})`}
+            >
+              {/* Bars */}
+              {data.map((d, index) => {
+                const height = chartHeight - yScale(d.value);
+                return (
+                  <g key={index}>
+                    {/* Bar */}
+                    <rect
+                      x={index * (barWidth + barPadding)}
+                      y={yScale(d.value)}
+                      width={barWidth}
+                      height={height}
+                      fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
+                      stroke="white"
+                      strokeWidth={0.5}
+                    />
 
-                    {/* Individually colored wrapped values */}
-                    {lines.map((lineGroup, lineIdx) => (
-                      <tspan key={lineIdx} x={lx} dy={fontSize} fontSize={fontSize * 0.6}>
-                        {lineGroup.map((item, itemIdx) => {
-                          const globalIdx =
-                            lineGroup.slice(0, itemIdx).length +
-                            lines.slice(0, lineIdx).reduce((sum, l) => sum + l.length, 0);
-                          const fadedColor = globalIdx === 0 ? color : lightenRGBColor(color, globalIdx - 1, indexedValues.length - 2);
-                          return (
-                            <tspan key={itemIdx} fill={fadedColor}>
-                              {item}{itemIdx < lineGroup.length - 1 ? ", " : ""}
-                            </tspan>
-                          );
-                        })}
-                      </tspan>
-                    ))}
-                  </text>
-                </>
-              )}
+                    <text
+                      x={index * (barWidth + barPadding) + barWidth / 2}
+                      y={yScale(d.value) - chartHeight * 0.3 * flipLabel}
+                      fontSize={length * 0.03}
+                      transform={flipLabel === -1
+                        ? `rotate(180, ${index * (barWidth + barPadding) + barWidth / 2}, ${yScale(d.value) + chartHeight * 0.08 * flipLabel})`
+                        : undefined
+                      }
+                      fill="#c0c0c0ff"
+                      textAnchor="middle"
+                      dominantBaseline="baseline"
+                    >
+                      {d.value}
+                    </text>
+
+                    {/* Value sequence label above bar */}
+                    <text
+                      x={index * (barWidth + barPadding) + barWidth / 2}
+                      y={yScale(d.value) - chartHeight * 0.1 * flipLabel}
+                      fontSize={getFittedFontSize(
+                        valueLabels?.[index] ?? `L${index + 1}`,
+                        chartHeight * 0.15,
+                        barWidth * 1.1
+                      )}
+                      transform={flipLabel === -1
+                        ? `rotate(180, ${index * (barWidth + barPadding) + barWidth / 2}, ${yScale(d.value) + chartHeight * 0.06 * flipLabel})`
+                        : undefined
+                      }
+                      fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
+                      textAnchor="middle"
+                      dominantBaseline="baseline"
+                    >
+                      {valueLabels?.[index] ?? `L${index + 1}`}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* D3 Axis group (right side) */}
+              {/* <g>
+                <g
+                  className="y-axis"
+                  ref={el => (yAxisRefs.current[i] = el)}
+                  transform={`translate(${chartWidth}, 0)`}
+                />
+                <g
+                  className="x-axis"
+                  ref={el => (xAxisRefs.current[i] = el)}
+                  transform={`translate(0, ${chartHeight})`}
+                />
+              </g> */}
             </g>
           );
         })}
 
-        {/* Embedded Color Legend in SVG */}
-        {colorMap && (
-          <g transform={`translate(${15}, ${15})`}>
-            <rect x={-width*0.01} y={-height*0.005} width={size * 0.2} height={size * 0.04 * Object.keys(colorMap).length} fill="white" stroke="#ccc" />
-            <text x={0} y={10} fontSize={size * 0.02} fontWeight="bold" fill="#333">Measure Legend:</text>
-            {Object.entries(colorMap).map(([measureKey, color], i) => (
-              <g key={measureKey} transform={`translate(-5, ${15 * (i + 1)})`}>
-                <circle cx={6} cy={6} r={3} fill={color} stroke="#666" strokeWidth={0.5} />
-                <text x={16} y={9} fontSize={size * 0.016} fill="#333">
-                  {measureKey.replace(/\|/g, ", ")}
-                </text>
-              </g>
-            ))}
+
+      {/* Attribute */}
+      {points.map(([x1, y1], i) => {
+        const attr = filterOrder[i];
+        const color = attr ? filterColors[i % filterColors.length] : "#000";
+
+        const [x2, y2] = points[(i + 1) % sides];
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+
+        const nx = -(dy / length);
+        const ny = dx / length;
+
+        const lx = mx - nx * length * 0.35;
+        const ly = my - ny * length * 0.35;
+
+        const angleRaw = Math.atan2(dy, dx) * (180 / Math.PI);
+        let angle = angleRaw;
+        if (angle > 90) angle -= 180;
+        if (angle < -90) angle += 180;
+
+        return (
+          <g key={attr || i}>
+            {attr && (
+              <text
+                x={lx}
+                y={ly}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                transform={`rotate(${angle},${lx},${ly})`}
+                fontSize={fontSize}
+                fontWeight="bold"
+                fill={color}
+                style={{
+                  cursor: "pointer",
+                  userSelect: "none",
+                  opacity: draggedIndex === i ? 0.4 : 1,
+                }}
+                onClick={() => {
+                  if (draggedIndex === null) {
+                    setDraggedIndex(i);
+                  } else {
+                    setDraggedIndex(null);
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (draggedIndex === null || draggedIndex === i) return;
+
+                  const newOrder = [...filterOrder];
+                  const draggedItem = newOrder.splice(draggedIndex, 1)[0];
+                  newOrder.splice(i, 0, draggedItem);
+                  setFilterOrder(newOrder);
+                  setDraggedIndex(i);
+                }}
+              >
+                {attr}
+              </text>
+            )}
           </g>
-        )}
+        );
+      })}
+
+      {/* circle the selectedInsight */}
+      
+
+      {/* Embedded Color Legend in SVG */}
+      {colorMap && (
+        <g transform={`translate(${15}, ${15})`}>
+          <rect x={-width*0.01} y={-height*0.005} width={size * 0.2} height={size * 0.04 * Object.keys(colorMap).length} fill="white" stroke="#ccc" />
+          <text x={0} y={10} fontSize={size * 0.02} fontWeight="bold" fill="#333">Measure Legend:</text>
+          {Object.entries(colorMap).map(([measureKey, color], i) => (
+            <g key={measureKey} transform={`translate(-5, ${15 * (i + 1)})`}>
+              <circle cx={6} cy={6} r={3} fill={color} stroke="#666" strokeWidth={0.5} />
+              <text x={16} y={9} fontSize={size * 0.016} fill="#333">
+                {measureKey.replace(/\|/g, ", ")}
+              </text>
+            </g>
+          ))}
+        </g>
+      )}
 
       </svg>
       

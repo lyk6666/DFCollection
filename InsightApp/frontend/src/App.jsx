@@ -30,6 +30,7 @@ function App() {
   const [sectionData, setSectionData] = useState(null);
   const [insights, setInsights] = useState([]);
   const [selectedOverviewFilter, setSelectedOverviewFilter] = useState([]);
+  const [clickedInsight, setClickedInsight] = useState(null);
 
   const handleFilterSelected = (filterInfo) => {
     console.log("Selected filter from Overview:", filterInfo);
@@ -244,9 +245,9 @@ function App() {
               filterOrder={filterOrder}
               setFilterOrder={setFilterOrder}
               sectionData={sectionData}
-              onInsightClick={() => {}}
+              onInsightClick={setClickedInsight}
               onLayoutReady={() => {}}
-              selectedInsight={null}
+              selectedInsight={clickedInsight}
             />
           )}
         </div>
@@ -302,12 +303,8 @@ function App() {
             width={similaritySize.width}
             height={similaritySize.height}
             collection={selectedCollection}
-            onInsightClick={() => {}}
-            onLayoutReady={() => {}}
-            onLegendReady={() => {}}
-            onTypeLegendReady={() => {}}
-            onLargestReady={() => {}}
-            polygonLayout={[]} // Pass empty array for now
+            onInsightClick={setClickedInsight}
+            selectedInsight={clickedInsight}
           />
         </div>
       </div>
