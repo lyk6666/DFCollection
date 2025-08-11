@@ -37,6 +37,15 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
     }
   });
 
+
+  const insightKey = (i) =>
+    JSON.stringify({
+      type: i?.type,
+      breakdown: i?.breakdown,
+      subspace: i?.subspace,
+      measure: Array.isArray(i?.measure) ? [...i.measure].sort() : [i?.measure],
+    });
+
   return (
     <svg ref={svgRef} width="100%" height="100%" style={{ background: "white" }}>
       {/* Draw grid */}
@@ -52,7 +61,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
       })}
 
       {positionedInsights.map((insight) => {
-        const isSelected = selectedInsight?.id === insight.id;
+        const isSelected = (insightKey(insight) === insightKey(selectedInsight));
         const isLargest = largestPerColor[insight.color]?.id === insight.id;
 
         const cx = scaleX(insight.x);
@@ -60,8 +69,8 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
         const r = scaleR(insight.r);
 
         const fillColor = isSelected
-          ? adjustColorBrightness(insight.color, -60)
-          : adjustColorBrightness(insight.color, isLargest ? 40 : 40);
+          ? adjustColorBrightness(insight.color, 0)
+          : adjustColorBrightness(insight.color, 80);
 
         return (
           <g key={insight.id}>
@@ -72,7 +81,10 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
               fill={fillColor}
               stroke="#333"
               strokeWidth={Math.min(width, height) * 0.001}
-              onClick={() => onInsightClick?.(insight)}
+              onClick={() => {
+                onInsightClick?.(insight)
+                console.log("Clicked insight in Similarity:", insight);
+              }}
               style={{ cursor: "pointer" }}
             />
             <text
