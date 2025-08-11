@@ -216,7 +216,7 @@ function getFittedFontSize(text, maxFontSize, barWidth, fontFamily = 'sans-serif
   if (textWidth <= barWidth) return maxFontSize;
 
   // Binary search to find optimal font size
-  let min = 3;
+  let min = 6;
   let max = maxFontSize;
   let bestFit = min;
 
@@ -523,6 +523,13 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   //   });
   // }, [points, insightCounts]);
 
+    const insightKey = (i) =>
+    JSON.stringify({
+      type: i?.type,
+      breakdown: i?.breakdown,
+      subspace: i?.subspace,
+      measure: Array.isArray(i?.measure) ? [...i.measure].sort() : [i?.measure],
+    });
 
 
   // ⛔ Hook declarations above ⛔ — now safe to return early
@@ -603,44 +610,40 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
               const fillColor = colorMap[key] || "#ccc";  // fallback color
 
               return (
-                <circle
-                  key={`${seg.id}-insight-${i}`}
-                  cx={x}
-                  cy={y}
-                  r={baseRadius}
-                  fill={fillColor}
-                  stroke="black"
-                  strokeWidth={0.5}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    const svgRect = svgRef.current.getBoundingClientRect();
+                <g key={`${seg.id}-insight-${i}`}>
+                  {/* base dot */}
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={baseRadius}
+                    fill={fillColor}
+                    stroke="black"
+                    strokeWidth={0.5}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      onInsightClick?.(insight)
+                      console.log("Clicked insight in Polygon:", insight);
+                    }}
+                  />
 
-                    const relativeX = x + svgRect.left;
-                    const relativeY = y + svgRect.top;
-
-                    onInsightClick?.({
-                      ...insight,
-                      position: { x: relativeX, y: relativeY }
-                    });
-                  }}
-                />
+                  {/* highlight ring if selected */}
+                  {selectedInsight && insightKey(selectedInsight) === insightKey(insight) && (
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={baseRadius * 6}
+                      fill="none"
+                      stroke="red"
+                      strokeWidth={2}
+                      strokeDasharray="4 2"
+                      pointerEvents="none"
+                    />
+                  )}
+                </g>
               );
+
             });
           })}
-
-          
-        {selectedInsight && selectedInsight.position && (
-          <circle
-            cx={selectedInsight.position.x}
-            cy={selectedInsight.position.y}
-            r={6}
-            stroke="red"
-            strokeWidth={2}
-            fill="none"
-            strokeDasharray="4 2"
-            pointerEvents="none"
-          />
-        )}
 
         {/* Split lines with level-based fading */}
         {polygonSections?.split_lines
@@ -788,7 +791,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
                       fontSize={getFittedFontSize(
                         valueLabels?.[index] ?? `L${index + 1}`,
                         chartHeight * 0.15,
-                        barWidth * 1.1
+                        barWidth * 1.2
                       )}
                       transform={flipLabel === -1
                         ? `rotate(180, ${index * (barWidth + barPadding) + barWidth / 2}, ${yScale(d.value) + chartHeight * 0.06 * flipLabel})`
