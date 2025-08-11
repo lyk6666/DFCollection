@@ -23,7 +23,7 @@ function getPolygonSides(filterCount) {
   return filterCount % 2 === 0 ? filterCount + 1 : filterCount;
 }
 
-function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilterOrder, selectedFilter, selectedCollection }) {
+function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilterOrder, selectedFilter, selectedCollection, history }) {
   const ref = useRef();
 
   function passesFilter(collection, selectedFilter) {
@@ -51,9 +51,19 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
     }
   }
 
-  useEffect(() => {
-    console.log("Received filter from Overview:", selectedFilter);
-  }, [selectedFilter]);
+  // 🆕 Map: collectionId -> first-seen sequence (1-based)
+    const seqByCollection = useMemo(() => {
+      const m = new Map();
+      history.forEach((h, i) => {
+        const id = h?.collection?.id;
+        if (id != null && !m.has(id)) m.set(id, i + 1);
+      });
+      return m;
+    }, [history]);
+
+  // useEffect(() => {
+  //   console.log("Received filter from Overview:", selectedFilter);
+  // }, [selectedFilter]);
 
   useEffect(() => {
     if (!data || data.length === 0) return;
@@ -258,13 +268,68 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
           .attr("cy", scaledY)
           .attr("r", scaledRadius + width * 0.03)
           .attr("stroke", "red")
-          .attr("stroke-width", width * 0.005)
+          .attr("stroke-width", 2)
           .attr("fill", "none")
           .attr("stroke-dasharray", "5 5")
           .attr("pointer-events", "none");
       }
     });
 
+
+    // 🆕 —————————————— HISTORY OVERLAYS ——————————————
+    const overlayGroup = innerGroup.append("g").attr("class", "history-overlays");
+
+    const baseR = Math.max(3, Math.min(squareWidth, squareHeight) * 0.012);
+    const ringPad = Math.max(6, baseR * 0.9);
+
+    data.forEach((collection) => {
+      if (!collection?.position) return;
+      const seq = seqByCollection.get(collection.id);
+      // console.log("sequence for collection:", collection.id, "is", seq);
+      if (!seq) return; // not in history
+
+      const cx = collection.position.x * squareWidth;
+      const cy = collection.position.y * squareHeight;
+      const polyR = collection.position.r * Math.min(squareWidth, squareHeight) * 1;
+      const ringR = polyR * 1.15; // a bit outside the polygon
+
+      // dashed ring
+      overlayGroup.append("circle")
+        .attr("cx", cx).attr("cy", cy).attr("r", ringR)
+        .attr("fill", "none")
+        .attr("stroke", "#949494ff")
+        .attr("stroke-width", 1.2)
+        .attr("stroke-dasharray", "4 3")
+        .attr("pointer-events", "none");
+
+      // small badge with sequence number (top-right)
+      const badgeX = cx + ringR + ringPad;
+      const badgeY = cy - ringR;
+      const bw = Math.max(18, baseR * 3.2);
+      const bh = Math.max(14, baseR * 2.4);
+      const br = Math.min(6, bw * 0.25);
+
+      overlayGroup.append("rect")
+        .attr("x", badgeX - bw / 2)
+        .attr("y", badgeY - bh / 2)
+        .attr("width", bw).attr("height", bh)
+        .attr("rx", br).attr("ry", br)
+        .attr("fill", "#a1a1a1ff")
+        .attr("stroke", "#707070ff")
+        .attr("stroke-width", 0.8)
+        .attr("pointer-events", "none");
+
+      overlayGroup.append("text")
+        .attr("x", badgeX).attr("y", badgeY + 0.5) // slight vertical centering
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "central")
+        .attr("font-size", Math.max(10, baseR * 1.4))
+        .attr("font-weight", 700)
+        .attr("fill", "#fff")
+        .text(String(seq))
+        .attr("pointer-events", "none");
+    });
+    // 🆕 —————————————— /HISTORY OVERLAYS ——————————————
 
     
     // === 🎨 Color + Opacity Legend ===
@@ -280,7 +345,7 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       .attr("transform", `translate(${offsetX + legendX}, ${offsetY + legendY})`);
 
     // === ⬆️ Opacity Legend (above color legend)
-    const opacityLegendHeight = width * 0.012;
+    const opacityLegendHeight = width * 0.014;
     const opacityLevels = Array.from({ length: 9 }, (_, i) => 0.1 + (0.9/ 9) * i); // low, medium, high opacity
     const SPACING = 3; // space between opacity legend and color legend
 
@@ -353,44 +418,44 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       .style("font-size", "8px");
 
 
-// === 🆕 Y-Axis for Opacity
-const yAxisGroup = legendGroup.append("g")
-  .attr("transform", `translate(${-opacityLegendHeight * 0.5}, ${-opacityLegendHeight * opacityLevels.length + opacityLegendHeight * 0.5})`); // Shift to align with opacity blocks
+    // === 🆕 Y-Axis for Opacity
+    const yAxisGroup = legendGroup.append("g")
+      .attr("transform", `translate(${-opacityLegendHeight * 0.5}, ${-opacityLegendHeight * opacityLevels.length + opacityLegendHeight * 0.5})`); // Shift to align with opacity blocks
 
-const yScale = d3.scaleLinear()
-  .domain([0, 8])
-  .range([
-    0, // bottom
-    opacityLegendHeight * 8 // top
-  ]);
+    const yScale = d3.scaleLinear()
+      .domain([0, 8])
+      .range([
+        0, // bottom
+        opacityLegendHeight * 8 // top
+      ]);
 
-const yAxis = d3.axisLeft(yScale)
-  .tickValues([0, 4, 8]) // only show these ticks
-  .tickFormat(d => d)   // show actual numbers
-  .tickSize(4); // <-- This sets both inner and outer tick line lengths
+    const yAxis = d3.axisLeft(yScale)
+      .tickValues([0, 4, 8]) // only show these ticks
+      .tickFormat(d => d)   // show actual numbers
+      .tickSize(4); // <-- This sets both inner and outer tick line lengths
 
-yAxisGroup.call(yAxis);
+    yAxisGroup.call(yAxis);
 
-// Style the Y-axis
-yAxisGroup.selectAll("path") // axis line
-  .attr("stroke", "#666");
+    // Style the Y-axis
+    yAxisGroup.selectAll("path") // axis line
+      .attr("stroke", "#666");
 
-yAxisGroup.selectAll("line") // tick lines
-  .attr("stroke", "#666");
+    yAxisGroup.selectAll("line") // tick lines
+      .attr("stroke", "#666");
 
-yAxisGroup.selectAll("text") // tick labels
-  .style("fill", "#333")
-  .style("font-size", "8px");
+    yAxisGroup.selectAll("text") // tick labels
+      .style("fill", "#333")
+      .style("font-size", "8px");
 
-// Axis label
-yAxisGroup.append("text")
-  .attr("x", -opacityLegendHeight * 4) // middle of axis
-  .attr("y", -width * 0.05)
-  .attr("transform", "rotate(-90)")
-  .attr("text-anchor", "middle")
-  .attr("fill", "#333")
-  .attr("font-size", "8px")
-  .text("Type Count");
+    // Axis label
+    yAxisGroup.append("text")
+      .attr("x", -opacityLegendHeight * 4) // middle of axis
+      .attr("y", -width * 0.05)
+      .attr("transform", "rotate(-90)")
+      .attr("text-anchor", "middle")
+      .attr("fill", "#333")
+      .attr("font-size", "8px")
+      .text("Type Count");
 
     // === Labels
     legendGroup.append("text")
