@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useLayoutEffect, useRef, useCallback } from "react";
+import { toPng } from 'html-to-image';
+
 import CollectionVoronoi from "./components/Collection_Voronoi";
 import CollectionSummary from "./components/Collection_Summary";
 import InsightPolygon from "./components/Insight_Polygon";
 import InsightSimilarity from "./components/Insight_Similarity";
+import HistoryView from "./components/History_View";
+import InsightSummary from "./components/Insight_Summary";
 
 function useElementSize(ref) {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -31,6 +35,17 @@ function App() {
   const [insights, setInsights] = useState([]);
   const [selectedOverviewFilter, setSelectedOverviewFilter] = useState([]);
   const [clickedInsight, setClickedInsight] = useState(null);
+    // 🔥 NEW: keep history in App (most-recent first)
+  const [history, setHistory] = useState(() => {
+    try {
+      const raw = localStorage.getItem("dfc_history");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  
 
   const handleFilterSelected = (filterInfo) => {
     console.log("Selected filter from Overview:", filterInfo);
@@ -80,58 +95,6 @@ function App() {
       .catch(err => console.error("Error fetching section data:", err));
   }, [selectedCollection, filterOrder]);
 
-  // Fixed layout sizes
-  // const overviewWidth = window.innerWidth * 0.35;
-  // const exploreWidth = window.innerWidth * 0.65;
-  // const fullViewWidth = overviewWidth;
-  // const height = window.innerHeight;
-
-  // return (
-  //   <div style={{ width: "100vw", height: "100vh", display: "flex", overflow: "hidden" }}>
-  //     {/* Left side: Overview + FullView vertically stacked */}
-  //     <div style={{ width: fullViewWidth, flexDirection: "column" }}>
-  //       {/* Overview (Top) */}
-  //       <div style={{ height: "25%", background: "#ffffff" }}>
-  //         <Overview
-  //           insights={insights}
-  //           collections={collections}
-  //           width={fullViewWidth}
-  //           height={height * 0.25}
-  //           onFilterSelected={handleFilterSelected}
-  //         />
-  //       </div>
-
-  //       {/* FullView (Bottom) */}
-  //       <div style={{ height: "75%", background: "#ffffff" }}>
-  //         {collections.length > 0 && (
-  //           <FullView
-  //             width={fullViewWidth}
-  //             height={height * 0.75}
-  //             data={collections}
-  //             setSelectedCollection={setSelectedCollection}
-  //             setFilterOrder={setFilterOrder}
-  //             selectedFilter={selectedOverviewFilter}
-  //             selectedCollection={selectedCollection}
-  //           />
-  //         )}
-  //       </div>
-  //     </div>
-
-  //    {/* Explore stays on the right */}
-  //      <div style={{ width: exploreWidth, background: "#ffffff" }}>
-  //        <Explore
-  //         collection={selectedCollection}
-  //         filterOrder={filterOrder}
-  //         setFilterOrder={setFilterOrder}
-  //         sectionData={sectionData}
-  //         width={exploreWidth}
-  //         height={height}
-  //       />
-  //     </div>
-  //   </div>
-  // );
-
-
   // Adjustable values
   const headerHeight = 3;         // %
   const summaryWidth = 30;        // %
@@ -147,6 +110,36 @@ function App() {
   const voronoiRef = useRef(null);
   const similarityRef = useRef(null);
   const historyRef = useRef(null);
+
+
+// make Shot async so we can await the capture
+const handleShot = async () => {
+  if (!clickedInsight || !selectedCollection || !polygonRef.current) return;
+
+  // grab the SVG node inside the polygon container
+  const node = polygonRef.current.querySelector('svg') || polygonRef.current;
+
+  // make a crisp thumbnail
+  const thumb = await toPng(node, {
+    pixelRatio: 2,
+    backgroundColor: '#fff',
+    // optional: set export size (or let it auto-size)
+    // width: 600, height: 400,
+  });
+
+  const snapshot = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: Date.now(),
+    collection: selectedCollection,
+    insight: clickedInsight,
+    thumb, // ← store the PNG data URL
+  };
+
+  // console.log("Saving screenshot to history:", thumb);
+
+  setHistory(prev => [snapshot, ...prev].slice(0, 3));
+};
+
 
   const summarySize = useElementSize(summaryRef);
   const polygonSize = useElementSize(polygonRef);
@@ -263,7 +256,11 @@ function App() {
       }}>
         <div style={titleStyle}>Insight-Summary View</div>
         <div style={contentRectStyle} ref={insightSummaryRef}>
-
+          <InsightSummary 
+            width={insightSummarySize.width}
+            height={insightSummarySize.height}
+            selectedCollection={selectedCollection}
+          />
         </div>
       </div>
 
@@ -285,6 +282,7 @@ function App() {
             setFilterOrder={setFilterOrder}
             selectedFilter={selectedOverviewFilter}
             selectedCollection={selectedCollection}
+            history={history}
           />
         </div>
       </div>
@@ -318,7 +316,16 @@ function App() {
         background: '#ffffffff', color: 'white'
       }}>
         <div style={titleStyle}>History View</div>
-        <div style={contentRectStyle} ref={historyRef}></div>
+        <div style={contentRectStyle} ref={historyRef}>
+          <HistoryView
+            width={historySize.width}
+            height={historySize.height}
+            currentInsight={clickedInsight}
+            currentCollection={selectedCollection} // collection for current insight
+            history={history}                  // ← pass the stored history
+            onShot={handleShot}                // ← “screenshot” button handler
+          />
+        </div>
       </div>
     </div>
   );
