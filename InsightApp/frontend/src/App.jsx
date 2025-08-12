@@ -7,6 +7,7 @@ import InsightPolygon from "./components/Insight_Polygon";
 import InsightSimilarity from "./components/Insight_Similarity";
 import HistoryView from "./components/History_View";
 import InsightSummary from "./components/Insight_Summary";
+import UploadAndSelect from "./components/UploadAndSelect";
 
 function useElementSize(ref) {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -45,58 +46,72 @@ function App() {
     }
   });
 
-  
-
   const handleFilterSelected = (filterInfo) => {
     console.log("Selected filter from Overview:", filterInfo);
     setSelectedOverviewFilter(filterInfo);  // <-- optional: store it for FullView
   };
 
-  // Fetch insights
+  // at top of App()
+  const API_BASE = "http://127.0.0.1:5000";
+  const [backendStage, setBackendStage] = useState("idle"); // idle | processing | ready | error
+  const [backendMsg, setBackendMsg] = useState("");
+
+  // poll status
   useEffect(() => {
-    fetch("http://localhost:5000/api/insights")
-      .then(res => res.json())
+    let timer;
+    const poll = async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/status`);
+        const s = await r.json();
+        setBackendStage(s.stage);
+        setBackendMsg(s.message || "");
+        if (s.stage !== "ready") timer = setTimeout(poll, 1200);
+      } catch {
+        timer = setTimeout(poll, 2000);
+      }
+    };
+    poll();
+    return () => clearTimeout(timer);
+  }, []);
+
+
+  // insights
+  useEffect(() => {
+    if (backendStage !== "ready") return;
+    fetch(`${API_BASE}/api/insights`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(setInsights)
       .catch(err => console.error("Error fetching insights:", err));
-  }, []);
+  }, [backendStage]);
 
-  // Fetch collections
+  // collections
   useEffect(() => {
-    fetch("http://localhost:5000/api/insight_collections")
-      .then(res => res.json())
+    if (backendStage !== "ready") return;
+    fetch(`${API_BASE}/api/insight_collections`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(setCollections)
       .catch(err => console.error("Error fetching insight collections:", err));
-  }, []);
+  }, [backendStage]);
 
-  // Fetch value sequence
+  // value sequence
   useEffect(() => {
-    fetch("http://localhost:5000/api/value_sequence")
-      .then(res => res.json())
+    if (backendStage !== "ready") return;
+    fetch(`${API_BASE}/api/value_sequence`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(setValueSequence)
       .catch(err => console.error("Error fetching value sequence:", err));
-  }, []);
+  }, [backendStage]);
 
-  // Fetch section data on collection/filters change
   useEffect(() => {
+    if (backendStage !== "ready") return;
     if (!selectedCollection || filterOrder.length === 0) return;
-    fetch("http://localhost:5000/api/collection_sections", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        collection_id: selectedCollection.id,
-        filter_sequence: filterOrder
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setSectionData(data);
-        console.log("Sections data from backend:", data);
-      })
-      .catch(err => console.error("Error fetching section data:", err));
-  }, [selectedCollection, filterOrder]);
+    fetch(`${API_BASE}/api/collection_sections`, { /* ... */ })
+      .then(r => r.json())
+      .then(setSectionData);
+  }, [backendStage, selectedCollection, filterOrder]);
 
   // Adjustable values
-  const headerHeight = 3;         // %
+  const headerHeight = 5;         // %
   const summaryWidth = 30;        // %
   const summaryHeight = 30;       // %
   const polygonWidth = 40;        // %
@@ -193,9 +208,10 @@ const handleShot = async () => {
       <div style={{
         position: 'absolute', top: 0, left: 0,
         width: '100%', height: `${headerHeight}%`,
-        background: '#00bcd4', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        background: '#5e5e5eff', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '5vw' // horizontal padding
       }}>
-        DFCollection
+        <div style={{ fontWeight: 800, paddingLeft: '5vw', fontSize: 30 }}>DFCollection</div>
+        <UploadAndSelect apiBase="http://127.0.0.1:5000" />
       </div>
 
       {/* Collection-Summary View */}
