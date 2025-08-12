@@ -105,9 +105,25 @@ function App() {
   useEffect(() => {
     if (backendStage !== "ready") return;
     if (!selectedCollection || filterOrder.length === 0) return;
-    fetch(`${API_BASE}/api/collection_sections`, { /* ... */ })
-      .then(r => r.json())
-      .then(setSectionData);
+
+    fetch(`${API_BASE}/api/collection_sections`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        collection_id: selectedCollection.id,
+        filter_sequence: filterOrder,
+      }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP error! Status: ${r.status}`);
+        return r.json();
+      })
+      .then(setSectionData)
+      .catch((err) => {
+        console.error("Error fetching collection sections:", err);
+      });
   }, [backendStage, selectedCollection, filterOrder]);
 
   // Adjustable values
