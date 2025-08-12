@@ -288,7 +288,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
       {/* 3 History panels (taller chart, no meta) */}
       {[0, 1, 2].map((i) => {
         const item = history[i];
-				console.log("History item:", i, item);
+				// console.log("History item:", i, item);
         return (
           <div key={i} style={cellStyle}>
             {item ? (
