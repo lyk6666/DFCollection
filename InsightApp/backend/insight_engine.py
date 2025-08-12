@@ -2,25 +2,29 @@ import pandas as pd
 from itertools import product
 
 from config import (
-    CATEGORICAL_COLUMNS,
-    ORDINAL_COLUMNS,
-    CSV_PATH,
-    TYPE_METADATA,
     MINI_DATASET,
     COMPOUND_MINI_DATASET,
     UNIFORMITY_CV_THRESHOLD,
     THRESHOLD_SIG
 )
 
+import config
+
 import pandas as pd
 
 def generate_insights():
+    df = config.DATAFRAME
+    cats = config.CATEGORICAL_COLUMNS
+    ords = config.ORDINAL_COLUMNS
 
-    categorical_columns = CATEGORICAL_COLUMNS
-    ordinal_columns = ORDINAL_COLUMNS
+    categorical_columns = cats
+    if categorical_columns is None:
+        raise ValueError("CATEGORICAL_COLUMNS is not set. Please upload a dataset first.")
+    ordinal_columns = ords
 
     # Use the path from config
-    df = pd.read_csv(CSV_PATH)
+    if df is None:
+        raise ValueError("DATAFRAME is not set. Please upload a dataset first.")
 
     numerical_columns = [col for col in df.columns if col not in categorical_columns]
 

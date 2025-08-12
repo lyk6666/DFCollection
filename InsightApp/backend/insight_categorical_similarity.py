@@ -7,22 +7,20 @@ import pandas as pd
 import os
 
 from config import (
-    CATEGORICAL_COLUMNS,
-    ORDINAL_COLUMNS,
-    CSV_PATH,
     TYPE_METADATA,
-    MINI_DATASET,
-    COMPOUND_MINI_DATASET,
-    UNIFORMITY_CV_THRESHOLD,
-    THRESHOLD_SIG
 )
+
+import config
 
 
 def intra_coupled_similarity(): 
-    categorical_columns = CATEGORICAL_COLUMNS
+    df = config.DATAFRAME
+    cats = config.CATEGORICAL_COLUMNS
+    ords = config.ORDINAL_COLUMNS
+
+    categorical_columns = cats
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    df = pd.read_csv(CSV_PATH)
 
     attribute_distributions = {}
 
@@ -73,6 +71,10 @@ def intra_coupled_similarity():
     return attribute_distributions
 
 def inter_coupled_similarity():
+    df = config.DATAFRAME
+    cats = config.CATEGORICAL_COLUMNS
+    ords = config.ORDINAL_COLUMNS
+
     def phi_j_to_k(df, attr_j, attr_k, vj):
         filtered_df = df[df[attr_j] == vj]
         return set(filtered_df[attr_k].dropna().unique())
@@ -111,10 +113,9 @@ def inter_coupled_similarity():
             return 0.0
         return sum(similarities) / len(similarities)
 
-    categorical_columns = CATEGORICAL_COLUMNS
+    categorical_columns = cats
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    df = pd.read_csv(CSV_PATH)
 
     result = {}
 

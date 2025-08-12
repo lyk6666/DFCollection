@@ -1,7 +1,6 @@
 from collections import defaultdict
 from config import (
-    W_FILTER, W_MEASURE, W_BREAKDOWN, W_TYPE, W_SCORE,
-    MIN_RADIUS, MAX_RADIUS, OVERLAP_PADDING, EDGE_BUFFER, MDS_SEED
+    MIN_RADIUS, MAX_RADIUS, EDGE_BUFFER
 )
 
 def group_insights(insights):

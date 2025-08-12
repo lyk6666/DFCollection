@@ -1,3 +1,5 @@
+import config
+
 def split_collection_by_filters(collection, filter_sequence):
     insights = collection["insights"]
     total_collection_score = sum(ins["score"] for ins in insights)
@@ -101,18 +103,9 @@ def split_collection_by_filters(collection, filter_sequence):
     # Begin recursive filtering
     return recurse(insights, filter_sequence, {}, total_collection_score)
 
-
-from config import (
-    CATEGORICAL_COLUMNS,
-    CSV_PATH,
-)
-
 def get_value_sequences():
-    import pandas as pd
-
-    categorical_columns = CATEGORICAL_COLUMNS
-    csv_path = CSV_PATH
-    df = pd.read_csv(csv_path)
+    categorical_columns = config.CATEGORICAL_COLUMNS
+    df = config.DATAFRAME
 
     value_sequences = {}
     for col in categorical_columns:
