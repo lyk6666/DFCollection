@@ -43,6 +43,9 @@ def generate_insights():
         if any(val == '*' for val in values)
     ]
 
+    # for filter in filters:
+    #     print(filter)
+
     # Convert each filter to a dictionary for easier use
     filter_dicts = [
         dict(zip(df_cat.columns, values)) 
@@ -328,27 +331,27 @@ def generate_insights():
         significance = 1 - p_value
         return significance
 
-    def test_evenness(values):
-        values = np.array(values)
-        if len(values) < MINI_DATASET:
-            return 0.0
-        if len(values) < 2 or np.isnan(values).all():
-            return 0.0
-        mu = np.nanmean(values)
-        residuals = values - mu
-        abs_residuals = np.abs(residuals)
-        max_abs_resid = np.max(abs_residuals)
-        # Fit Gaussian to the residuals
-        if len(residuals) < 2:
-            return 0.0
-        resid_std = np.nanstd(residuals, ddof=1)
-        if resid_std == 0 or np.isnan(resid_std):
-            return 0.0
-        # p-value: probability of observing such a large residual under N(0, resid_std^2)
-        # Two-sided test
-        p_value = 2 * (1 - norm.cdf(max_abs_resid, loc=0, scale=resid_std))
-        significance = 1 - p_value
-        return significance
+    # def test_evenness(values):
+    #     values = np.array(values)
+    #     if len(values) < MINI_DATASET:
+    #         return 0.0
+    #     if len(values) < 2 or np.isnan(values).all():
+    #         return 0.0
+    #     mu = np.nanmean(values)
+    #     residuals = values - mu
+    #     abs_residuals = np.abs(residuals)
+    #     max_abs_resid = np.max(abs_residuals)
+    #     # Fit Gaussian to the residuals
+    #     if len(residuals) < 2:
+    #         return 0.0
+    #     resid_std = np.nanstd(residuals, ddof=1)
+    #     if resid_std == 0 or np.isnan(resid_std):
+    #         return 0.0
+    #     # p-value: probability of observing such a large residual under N(0, resid_std^2)
+    #     # Two-sided test
+    #     p_value = 2 * (1 - norm.cdf(max_abs_resid, loc=0, scale=resid_std))
+    #     significance = 1 - p_value
+    #     return significance
 
     def test_correlation(x, y):
         x = np.array(x)
@@ -412,6 +415,9 @@ def generate_insights():
         return None
     
     used_measure_pairs = set()
+
+    i = 0
+
     for item in integrated_subspaces:
         subspace = item['filter']
         breakdown = item['breakdown']
@@ -469,12 +475,12 @@ def generate_insights():
                 if cp_sig > THRESHOLD_SIG:
                     insight_type = "Change Point"
                     significance = cp_sig
-                else:
-                    # 3. Evenness
-                    evenness_sig = test_evenness(values)
-                    if evenness_sig > THRESHOLD_SIG:
-                        insight_type = "Evenness"
-                        significance = evenness_sig
+                # else:
+                #     # 3. Evenness
+                #     evenness_sig = test_evenness(values)
+                #     if evenness_sig > THRESHOLD_SIG:
+                #         insight_type = "Evenness"
+                #         significance = evenness_sig
 
         # Record single insight
         if insight_type:
@@ -489,6 +495,9 @@ def generate_insights():
                 'score': score,
                 'aggregated_df': aggregated_df
             })
+
+            print(f"Single Insight {i}: {subspace} and {insight_type} for {measure} in {breakdown} with score {score:.4f}, with length {n}")
+            i += 1
 
         # Compound Insights: correlation or cross-measure correlation
         for measure2 in numerical_columns:
@@ -534,6 +543,9 @@ def generate_insights():
                     'score': score,
                     'aggregated_df': merged_df
                 })
+
+                print(f"Compound Insight {i}: {subspace} and {compound_type} for {measure} and {measure2} in {breakdown} with score {score:.4f}")
+                i += 1
 
     # -------------------------------------------------------------------------------------------------------------
 
