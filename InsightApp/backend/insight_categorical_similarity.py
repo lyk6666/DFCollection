@@ -295,7 +295,7 @@ def compute_insight_positions(insights, intra_mat, inter_mat, seed=42):
     dist_matrix = compute_coupled_distance_matrix(insights, intra_mat, inter_mat)
 
     # Step 2: MDS to 2D
-    mds = MDS(n_components=2, dissimilarity="precomputed", random_state=seed)
+    mds = MDS(n_components=2, dissimilarity="precomputed", random_state=seed, n_init=4)
     positions = mds.fit_transform(dist_matrix)
 
     # Step 3: Normalize x/y to [0, 1]
