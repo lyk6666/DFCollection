@@ -195,12 +195,21 @@ function aggregateInsightCountsByLevel(sectionData, level = 0, acc = {}) {
   return acc;
 }
 
-function interpolateColor(ratio, targetColor = [0, 123, 255], exponent = 3) {
+function interpolateColor(
+  ratio,
+  startColor = [255, 255, 255],   // initial color
+  targetColor = [0, 123, 255],     // final color
+  exponent = 3
+) {
+  const [r1, g1, b1] = startColor;
   const [r2, g2, b2] = targetColor;
-  const adjustedRatio = Math.pow(ratio, exponent); // makes transition steeper
-  const r = Math.round(255 + adjustedRatio * (r2 - 255));
-  const g = Math.round(255 + adjustedRatio * (g2 - 255));
-  const b = Math.round(255 + adjustedRatio * (b2 - 255));
+
+  const adjustedRatio = Math.pow(ratio, exponent); // steeper/shallower transition
+
+  const r = Math.round(r1 + adjustedRatio * (r2 - r1));
+  const g = Math.round(g1 + adjustedRatio * (g2 - g1));
+  const b = Math.round(b1 + adjustedRatio * (b2 - b1));
+
   return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -579,7 +588,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         {leafSegments.map(seg => {
           const count = seg.insights?.length || 0;
           const ratio = count / maxInsightCount;
-          const fillColor = interpolateColor(ratio, [200, 200, 200]); // White → Blue
+          const fillColor = count? interpolateColor(ratio, [240, 240, 240], [200, 200, 200]) : "white";
 
           return (
             <polygon
@@ -719,7 +728,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           const maxCount = d3.max(data, d => d.value) || 1;
           const chartWidth = length * 0.9
           const chartHeight = length * 0.2;
-          const barPadding = 5;
+          const barPadding = (size / Math.pow(Math.max(data.length, 1), 1.2)) * 0.12
           const barWidth = (chartWidth - barPadding * (data.length - 1)) / data.length;
 
           // const toCenterX = centerX - mx;
