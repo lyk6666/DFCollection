@@ -48,8 +48,9 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
 
   return (
     <svg ref={svgRef} width="100%" height="100%" style={{ background: "white" }}>
+      
       {/* Draw grid */}
-      {[...Array(21)].map((_, i) => {
+      {/* {[...Array(21)].map((_, i) => {
         const posH = i * (width / 20);
         const posW = i * (height / 20);
         return (
@@ -58,7 +59,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
             <line x1={0} y1={posW} x2={width} y2={posW} stroke="#ddd" strokeWidth={1} />
           </g>
         );
-      })}
+      })} */}
 
       {positionedInsights.map((insight) => {
         const isSelected = (insightKey(insight) === insightKey(selectedInsight));
