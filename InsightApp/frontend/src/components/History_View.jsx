@@ -20,6 +20,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     overflow: "hidden",
     border: "1px solid #e6e6e6",
     background: "#fff",
+    boxSizing: "border-box" // makes border part of width/height
   };
 
   const renderPanel = (insight, collection, showShotBtn = false, showMeta = false, sequence) => {
