@@ -122,7 +122,7 @@ def compute_mds_positions(similarities, num_collections):
     np.fill_diagonal(distance_matrix, 0)
 
     # Step 2: Apply MDS
-    mds = MDS(n_components=2, dissimilarity="precomputed", random_state=42)
+    mds = MDS(n_components=2, dissimilarity="precomputed", random_state=42, n_init=4)
     coords = mds.fit_transform(distance_matrix)
 
     # Step 3: Normalize to [0, 1]
