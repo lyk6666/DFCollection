@@ -4,8 +4,8 @@ from typing import Optional, List
 import pandas as pd
 
 # Base constants
-MINI_DATASET = 2
-COMPOUND_MINI_DATASET = 4
+MINI_DATASET = 3
+COMPOUND_MINI_DATASET = 3
 UNIFORMITY_CV_THRESHOLD = 0.30
 THRESHOLD_SIG = 0.95
 
