@@ -189,7 +189,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
             </ResponsiveContainer>
           );
 
-        case "Correlation": {
+        case "Temporal Correlation": {
           const [xKey, yKey] = Array.isArray(measure) ? measure : [measure, measure];
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
@@ -215,7 +215,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           );
         }
 
-        case "Cross-measure Correlation": {
+        case "Correlation": {
           const [xKey, yKey] = Array.isArray(measure) ? measure : [measure, measure];
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
