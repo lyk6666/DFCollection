@@ -62,14 +62,14 @@ def clear_all() -> None:
 # Type metadata
 TYPE_METADATA = {
     "Dominance":            ("SinglePoint",     "#1f77b4", "*"),
-    "Outstanding One":      ("SinglePoint",     "#1f77b4", "↑"),
+    # "Outstanding One":      ("SinglePoint",     "#1f77b4", "↑"),
     "Outstanding Twin":     ("SinglePoint",     "#1f77b4", "⇈"),
-    "Uniformity":           ("SinglePoint",     "#1f77b4", "="),
+    "Evenness":           ("SinglePoint",     "#1f77b4", "="),
     "Change Point":         ("SingleShape",     "#ff7f0e", "↷"),
     "Trend":                ("SingleShape",     "#ff7f0e", "/"),
-    "Evenness":             ("SingleShape",     "#ff7f0e", "="),
-    "Correlation":          ("Compound",        "#2ca02c", "∞"),
-    "Cross-measure Correlation": ("Compound",   "#2ca02c", "⊗"),
+    # "Evenness":             ("SingleShape",     "#ff7f0e", "="),
+    "Temporal Correlation":          ("Compound",        "#2ca02c", "∞"),
+    "Correlation": ("Compound",   "#2ca02c", "⊗"),
 }
 
 # Weights for similarity components (can be adjusted centrally)
