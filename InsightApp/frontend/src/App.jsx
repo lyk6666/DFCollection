@@ -129,7 +129,7 @@ function App() {
   // Adjustable values
   const headerHeight = 5;         // %
   const summaryWidth = 30;        // %
-  const summaryHeight = 30;       // %
+  const summaryHeight = 25;       // %
   const polygonWidth = 40;        // %
   const polygonHeight =68;       // %
   const paddingX = 0.25;      // vw
