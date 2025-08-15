@@ -103,7 +103,7 @@ def generate_insights():
     import numpy as np
     from scipy.stats import norm, linregress, t
 
-    def test_dominance(values, beta=1.2):
+    def test_dominance(values, beta=0.8):
         values = np.array(values)
         if len(values) < MINI_DATASET:
             # Not enough values to evaluate
@@ -148,54 +148,54 @@ def generate_insights():
 
         return significance
 
-    def test_outstanding_one(values, beta=0.8):
-        values = np.array(values)
-        if len(values) < MINI_DATASET:
-            # Not enough values to evaluate
-            return 0.0
+    # def test_outstanding_one(values, beta=0.8):
+    #     values = np.array(values)
+    #     if len(values) < MINI_DATASET:
+    #         # Not enough values to evaluate
+    #         return 0.0
 
-        # Step 1: Sort in descending order
-        sorted_values = np.sort(values)[::-1]
+    #     # Step 1: Sort in descending order
+    #     sorted_values = np.sort(values)[::-1]
 
-        # Step 2: Exclude the maximum value and fit power-law
-        y = sorted_values[1:]
-        ranks = np.arange(2, len(sorted_values)+1)  # ranks start from 2
+    #     # Step 2: Exclude the maximum value and fit power-law
+    #     y = sorted_values[1:]
+    #     ranks = np.arange(2, len(sorted_values)+1)  # ranks start from 2
 
-        # Log-transform for linear regression: log(y) = log(alpha) - beta*log(rank)
-        if len(y) == 0 or np.any(y <= 0) or np.isnan(y).any():
-            return 0.0
-        log_y = np.log(y)
+    #     # Log-transform for linear regression: log(y) = log(alpha) - beta*log(rank)
+    #     if len(y) == 0 or np.any(y <= 0) or np.isnan(y).any():
+    #         return 0.0
+    #     log_y = np.log(y)
 
-        log_rank = np.log(ranks)
-        alpha_hat = np.exp(np.mean(log_y + beta*log_rank))
+    #     log_rank = np.log(ranks)
+    #     alpha_hat = np.exp(np.mean(log_y + beta*log_rank))
 
-        # Predict values from model
-        y_hat = alpha_hat * ranks**(-beta)
+    #     # Predict values from model
+    #     y_hat = alpha_hat * ranks**(-beta)
 
-        # Step 3: Residuals and fit Gaussian
-        residuals = y - y_hat
-        if len(residuals) < 2:
-            return 0.0
-        mu_resid = np.nanmean(residuals)
-        std_resid = np.nanstd(residuals, ddof=1)
-        if std_resid == 0 or np.isnan(std_resid):
-            return 0.0
+    #     # Step 3: Residuals and fit Gaussian
+    #     residuals = y - y_hat
+    #     if len(residuals) < 2:
+    #         return 0.0
+    #     mu_resid = np.nanmean(residuals)
+    #     std_resid = np.nanstd(residuals, ddof=1)
+    #     if std_resid == 0 or np.isnan(std_resid):
+    #         return 0.0
         
-        # Step 4: Compute residual for top value
-        x_max = sorted_values[0]
-        x1_hat = alpha_hat * 1**(-beta)
-        R = x_max - x1_hat
+    #     # Step 4: Compute residual for top value
+    #     x_max = sorted_values[0]
+    #     x1_hat = alpha_hat * 1**(-beta)
+    #     R = x_max - x1_hat
 
-        # Step 5: Compute p-value for R under residuals' Gaussian model
-        # (Probability of seeing such a large residual under null)
-        p_value = 1 - norm.cdf(R, loc=mu_resid, scale=std_resid)
-        significance = 1 - p_value
+    #     # Step 5: Compute p-value for R under residuals' Gaussian model
+    #     # (Probability of seeing such a large residual under null)
+    #     p_value = 1 - norm.cdf(R, loc=mu_resid, scale=std_resid)
+    #     significance = 1 - p_value
 
-        return significance
+    #     return significance
 
     def test_outstanding_twin(values, beta=0.8):
         values = np.array(values)
-        if len(values) < MINI_DATASET:
+        if len(values) < MINI_DATASET + 1:
             # Not enough values to evaluate
             return 0.0
 
@@ -238,7 +238,7 @@ def generate_insights():
 
         return significance
 
-    def test_uniformity(values):
+    def test_evenness(values):
         values = np.array(values)
         if len(values) < MINI_DATASET:
             return 0.0
@@ -353,7 +353,7 @@ def generate_insights():
     #     significance = 1 - p_value
     #     return significance
 
-    def test_correlation(x, y):
+    def test_temporal_correlation(x, y):
         x = np.array(x)
         y = np.array(y)
         n = len(x)
@@ -378,7 +378,7 @@ def generate_insights():
             significance = 1 - p_value
         return significance
 
-    def test_cross_measure_correlation(measure1, measure2):
+    def test_correlation(measure1, measure2):
         x = np.array(measure1)
         y = np.array(measure2)
         n = len(x)
@@ -416,7 +416,7 @@ def generate_insights():
     
     used_measure_pairs = set()
 
-    i = 0
+    # i = 0
 
     for item in integrated_subspaces:
         subspace = item['filter']
@@ -438,28 +438,28 @@ def generate_insights():
             if dom_sig > THRESHOLD_SIG:
                 insight_type = "Dominance"
                 significance = dom_sig
+            # else:
+            #     # 2. Outstanding One
+            #     oo_sig = test_outstanding_one(values)
+            #     if oo_sig > THRESHOLD_SIG:
+            #         insight_type = "Outstanding One"
+            #         significance = oo_sig
             else:
-                # 2. Outstanding One
-                oo_sig = test_outstanding_one(values)
-                if oo_sig > THRESHOLD_SIG:
-                    insight_type = "Outstanding One"
-                    significance = oo_sig
+                # 3. Outstanding Twin
+                otwin_sig = test_outstanding_twin(values)
+                if otwin_sig > THRESHOLD_SIG:
+                    insight_type = "Outstanding Twin"
+                    significance = otwin_sig
                 else:
-                    # 3. Outstanding Twin
-                    otwin_sig = test_outstanding_twin(values)
-                    if otwin_sig > THRESHOLD_SIG:
-                        insight_type = "Outstanding Twin"
-                        significance = otwin_sig
-                    else:
-                        # 4. Uniformity: coefficient of variation < threshold
-                        mean = np.mean(values)
-                        std = np.std(values, ddof=1)
-                        cv = std / mean if mean != 0 else 0
-                        if cv < UNIFORMITY_CV_THRESHOLD:
-                            uniformity_sig = test_uniformity(values)
-                            if uniformity_sig > THRESHOLD_SIG:
-                                insight_type = "Uniformity"
-                                significance = uniformity_sig
+                    # 4. Uniformity: coefficient of variation < threshold
+                    mean = np.mean(values)
+                    std = np.std(values, ddof=1)
+                    cv = std / mean if mean != 0 else 0
+                    if cv < UNIFORMITY_CV_THRESHOLD:
+                        uniformity_sig = test_evenness(values)
+                        if uniformity_sig > THRESHOLD_SIG:
+                            insight_type = "Evenness"
+                            significance = uniformity_sig
 
         # Ordinal (Single Shape)
         else:
@@ -496,8 +496,8 @@ def generate_insights():
                 'aggregated_df': aggregated_df
             })
 
-            print(f"Single Insight {i}: {subspace} and {insight_type} for {measure} in {breakdown} with score {score:.4f}, with length {n}")
-            i += 1
+            # print(f"Single {i}: {subspace}, t: {insight_type}, m: {measure}, b: {breakdown}, l: {n}")
+            # i += 1
 
         # Compound Insights: correlation or cross-measure correlation
         for measure2 in numerical_columns:
@@ -517,11 +517,11 @@ def generate_insights():
             if min_len < COMPOUND_MINI_DATASET:
                 continue
             if breakdown in ordinal_columns:
+                corr_sig = test_temporal_correlation(values[:min_len], values2[:min_len])
+                compound_type = "Temporal Correlation"
+            else:
                 corr_sig = test_correlation(values[:min_len], values2[:min_len])
                 compound_type = "Correlation"
-            else:
-                corr_sig = test_cross_measure_correlation(values[:min_len], values2[:min_len])
-                compound_type = "Cross-measure Correlation"
             if corr_sig > THRESHOLD_SIG:
                 # Impact: average impact of both measures
                 impact2 = np.sum(values2) / measure_totals[measure2] if measure_totals[measure2] != 0 else 0
@@ -544,8 +544,8 @@ def generate_insights():
                     'aggregated_df': merged_df
                 })
 
-                print(f"Compound Insight {i}: {subspace} and {compound_type} for {measure} and {measure2} in {breakdown} with score {score:.4f}")
-                i += 1
+                # print(f"Compound {i}: {subspace}, t: {insight_type}, m: {measure}, b: {breakdown}, l: {n}")
+                # i += 1
 
     # -------------------------------------------------------------------------------------------------------------
 
