@@ -172,8 +172,8 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
               dataKey="count"
               nameKey="filterCount"
               cx="50%"
-              cy="50%"
-              outerRadius="95%"
+              cy="45%"
+              outerRadius="80%"
               labelLine={false}
               label={({ cx, cy, midAngle, outerRadius, percent, index }) => {
                 const RADIAN = Math.PI / 180;
