@@ -1,7 +1,7 @@
 import React from "react";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ScatterChart, Scatter, ResponsiveContainer
+  ScatterChart, Scatter, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
 
 function HistoryView({ width, height, currentInsight, currentCollection, history = [], onShot }) {
@@ -23,6 +23,13 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     boxSizing: "border-box" // makes border part of width/height
   };
 
+  // simple, deterministic color palette for pies
+  const PIE_COLORS = [
+    "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
+    "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab"
+  ];
+
+
   const renderPanel = (insight, collection, showShotBtn = false, showMeta = false, sequence) => {
     if (!insight) {
       return (
@@ -42,7 +49,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
     // fonts/margins proportional to local panel
     const tickFont       = Math.max(8, Math.min(localChartW * 0.02, localChartH * 0.06));
-    const axisLabelFont  = Math.max(10, localChartH * 0.06);
+    const axisLabelFont  = Math.max(4, localChartH * 0.04);
     const commonMargins  = { top: 0, right: width * 0.02, left: -width * 0.02, bottom: 0 };
 
     const {
@@ -134,8 +141,68 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
     const renderChart = () => {
       switch (type) {
-        case "Dominance":
-        case "Outstanding One":
+        case "Dominance": {
+          // Regular pie chart for Dominance
+          const generateBlueShades = (count) => {
+            const start = { r: 90, g: 216, b: 230 }; // light blue (lightsteelblue)
+            const end = { r: 30, g: 144, b: 200 };    // dodgerblue
+            return Array.from({ length: count }, (_, i) => {
+              const ratio = i / (count - 1);
+              const r = Math.round(start.r + (end.r - start.r) * ratio);
+              const g = Math.round(start.g + (end.g - start.g) * ratio);
+              const b = Math.round(start.b + (end.b - start.b) * ratio);
+              return `rgb(${r},${g},${b})`;
+            });
+          };
+
+          const colors = generateBlueShades(data.length);
+
+          const RADIAN = Math.PI / 180;
+          const labelFontSize = Math.min(localChartW * 0.06, localChartH * 0.06);
+
+          const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent, index, name, value }) => {
+            const radius = outerRadius * 1.05; // slightly outside the pie
+            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+            return (
+              <text
+                x={x}
+                y={y}
+                fill="#333"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={labelFontSize}
+              >
+                {`${name} (${(percent * 100).toFixed(1)}%)`}
+              </text>
+            );
+          };
+
+          return (
+            <ResponsiveContainer width={localChartW} height={localChartH}>
+              <PieChart>
+                <Tooltip />
+                <Pie
+                  data={data}
+                  dataKey={measureKey}
+                  nameKey={breakdown}
+                  labelLine={false}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={Math.min(localChartW, localChartH) * 0.4}
+                  paddingAngle={1}
+                  label={renderCustomLabel}
+                >
+                  {data.map((entry, i) => (
+                    <Cell key={`cell-${i}`} fill={colors[i % colors.length]} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          );
+        }
+
         case "Outstanding Twin":
         case "Uniformity":
           return (
@@ -151,6 +218,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                 />
                 <YAxis
                   tick={{ fontSize: tickFont }}
+                  textAnchor="middle" 
                   label={{ value: measureKey, angle: -90, position: "insideLeft", offset: 25, fontSize: axisLabelFont }}
                 />
                 <Tooltip />
@@ -161,7 +229,6 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
         case "Trend":
         case "Change Point":
-        case "Evenness":
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
               <LineChart data={data} margin={commonMargins}>
@@ -182,7 +249,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   dataKey={measureKey}
                   stroke="#4682B4"
                   strokeWidth={2}
-                  dot={{ r: Math.max(2, localChartW * 0.006) }}
+                  dot={{ r: 0 }}
                   activeDot={{ r: Math.max(3, localChartW * 0.008) }}
                 />
               </LineChart>
@@ -198,7 +265,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                 <XAxis
                   dataKey="index"
                   tick={{ fontSize: tickFont }}
-                  label={{ value: breakdown, position: "insideBottom", offset: 2, fontSize: axisLabelFont }}
+                  label={{ value: breakdown, position: "insideBottom", offset: 7, fontSize: axisLabelFont }}
                 />
                 <YAxis
                   tick={{ fontSize: tickFont }}
