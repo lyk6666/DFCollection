@@ -143,33 +143,33 @@ function App() {
   const historyRef = useRef(null);
 
 
-// make Shot async so we can await the capture
-const handleShot = async () => {
-  if (!clickedInsight || !selectedCollection || !polygonRef.current) return;
+  // make Shot async so we can await the capture
+  const handleShot = async () => {
+    if (!clickedInsight || !selectedCollection || !polygonRef.current) return;
 
-  // grab the SVG node inside the polygon container
-  const node = polygonRef.current.querySelector('svg') || polygonRef.current;
+    // grab the SVG node inside the polygon container
+    const node = polygonRef.current.querySelector('svg') || polygonRef.current;
 
-  // make a crisp thumbnail
-  const thumb = await toPng(node, {
-    pixelRatio: 2,
-    backgroundColor: '#fff',
-    // optional: set export size (or let it auto-size)
-    // width: 600, height: 400,
-  });
+    // make a crisp thumbnail
+    const thumb = await toPng(node, {
+      pixelRatio: 2,
+      backgroundColor: '#fff',
+      // optional: set export size (or let it auto-size)
+      // width: 600, height: 400,
+    });
 
-  const snapshot = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    timestamp: Date.now(),
-    collection: selectedCollection,
-    insight: clickedInsight,
-    thumb, // ← store the PNG data URL
+    const snapshot = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: Date.now(),
+      collection: selectedCollection,
+      insight: clickedInsight,
+      thumb, // ← store the PNG data URL
+    };
+
+    // console.log("Saving screenshot to history:", thumb);
+
+    setHistory(prev => [snapshot, ...prev]);
   };
-
-  // console.log("Saving screenshot to history:", thumb);
-
-  setHistory(prev => [snapshot, ...prev].slice(0, 3));
-};
 
 
   const summarySize = useElementSize(summaryRef);
