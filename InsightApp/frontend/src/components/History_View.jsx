@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useRef } from "react";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ScatterChart, Scatter, ResponsiveContainer, PieChart, Pie, Cell
@@ -23,12 +23,16 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     boxSizing: "border-box" // makes border part of width/height
   };
 
-  // simple, deterministic color palette for pies
-  const PIE_COLORS = [
-    "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
-    "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab"
-  ];
+  // simple, deterministic color palette for pies (kept in case of future use)
+  // const PIE_COLORS = [
+  //   "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
+  //   "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab"
+  // ];
 
+  // --- Minimal slider (no controls). We keep a ref so the parent could scroll if ever needed.
+  const sliderRef = useRef(null);
+
+  const hasHistory = Array.isArray(history) && history.length > 0;
 
   const renderPanel = (insight, collection, showShotBtn = false, showMeta = false, sequence) => {
     if (!insight) {
@@ -101,7 +105,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
               color: "grey"
             }}
           >
-            History {sequence + 1}: {type}
+            {typeof sequence === "number" ? `History ${sequence + 1}: ${type}` : type}
           </div>
         )}
 
@@ -147,7 +151,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
             const start = { r: 90, g: 216, b: 230 }; // light blue (lightsteelblue)
             const end = { r: 30, g: 144, b: 200 };    // dodgerblue
             return Array.from({ length: count }, (_, i) => {
-              const ratio = i / (count - 1);
+              const ratio = i / Math.max(1, (count - 1));
               const r = Math.round(start.r + (end.r - start.r) * ratio);
               const g = Math.round(start.g + (end.g - start.g) * ratio);
               const b = Math.round(start.b + (end.b - start.b) * ratio);
@@ -160,7 +164,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           const RADIAN = Math.PI / 180;
           const labelFontSize = Math.min(localChartW * 0.06, localChartH * 0.06);
 
-          const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent, index, name, value }) => {
+          const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
             const radius = outerRadius * 1.05; // slightly outside the pie
             const x = cx + radius * Math.cos(-midAngle * RADIAN);
             const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -218,7 +222,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                 />
                 <YAxis
                   tick={{ fontSize: tickFont }}
-                  textAnchor="middle" 
+                  textAnchor="middle"
                   label={{ value: measureKey, angle: -90, position: "insideLeft", offset: 25, fontSize: axisLabelFont }}
                 />
                 <Tooltip />
@@ -346,6 +350,51 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     );
   };
 
+  // Build the full history items list for the slider (NO slicing — renders ALL)
+  const historyItems = useMemo(() => {
+    return (history || []).map((item, i) => (
+      <div
+        key={i}
+        style={{
+          ...cellStyle,
+          minWidth: cellW,
+          width: cellW,
+          height: cellH,
+          scrollSnapAlign: "start",
+        }}
+      >
+        {item ? (
+          <>
+            {renderPanel(item.insight, item.collection, false, false, i)}
+
+            {/* Thumbnail overlay */}
+            {item.thumb && (
+              <img
+                src={item.thumb}
+                alt="Polygon snapshot"
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                  width: cellW * 0.40,
+                  height: cellH * 0.45,
+                  objectFit: "contain",
+                  border: "1px solid #ddd",
+                  background: "#fff",
+                  boxShadow: "0 3px 3px rgba(0,0,0,0.2)"
+                }}
+              />
+            )}
+          </>
+        ) : (
+          <div style={{ padding: 12, fontSize: 12, color: "#888" }}>
+            History {i + 1} (empty)
+          </div>
+        )}
+      </div>
+    ));
+  }, [history, cellH, cellW]);
+
   return (
     <div style={{ width, height, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap }}>
       {/* Current View with Shot button + meta (shorter chart) */}
@@ -353,43 +402,32 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
         {renderPanel(currentInsight, currentCollection, true, true)}
       </div>
 
-      {/* 3 History panels (taller chart, no meta) */}
-      {[0, 1, 2].map((i) => {
-        const item = history[i];
-				// console.log("History item:", i, item);
-        return (
-          <div key={i} style={cellStyle}>
-            {item ? (
-              <>
-                {renderPanel(item.insight, item.collection, false, false, i)}
-
-                {/* Thumbnail overlay */}
-                {item.thumb && (
-                  <img
-                    src={item.thumb}
-                    alt="Polygon snapshot"
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: 0,
-                      width: cellW * 0.40,
-                      height: cellH * 0.45,
-                      objectFit: "contain",
-                      border: "1px solid #ddd",
-                      background: "#fff",
-                      boxShadow: "0 3px 3px rgba(0,0,0,0.2)"
-                    }}
-                  />
-                )}
-              </>
-            ) : (
-              <div style={{ padding: 12, fontSize: 12, color: "#888" }}>
-                History {i + 1} (empty)
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {/* History slider spanning the remaining 3 columns */}
+      <div style={{ ...cellStyle, gridColumn: "span 3", width: cellW * 3 }}>
+        {/* Scrollable row of ALL history cards — no controls */}
+        <div
+          ref={sliderRef}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            overflowX: "auto",
+            overflowY: "hidden",
+            display: "flex",
+            gap: gap,
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {hasHistory ? historyItems : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", color: "#888", fontSize: 12 }}>
+              No history yet.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
