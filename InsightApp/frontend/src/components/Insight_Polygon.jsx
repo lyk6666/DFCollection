@@ -775,8 +775,10 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
                       width={barWidth}
                       height={height}
                       fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
-                      stroke="white"
+                      stroke="grey"
                       strokeWidth={0.5}
+                      rx={4} // horizontal corner radius
+                      ry={4} // vertical corner radius (optional; if omitted, equals rx)
                     />
 
                     <text
