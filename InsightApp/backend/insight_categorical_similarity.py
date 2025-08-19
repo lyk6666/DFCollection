@@ -218,20 +218,17 @@ def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
 
     return distance_matrix
 
-def avoid_overlap(positions, scores, padding=0.02):
-    from sklearn.preprocessing import MinMaxScaler
+def avoid_overlap(positions, scores, padding=0.01, r_fixed=0.03):
     import math
-    import numpy as np
 
-    min_r, max_r = 0.02, 0.07
     edge_buffer = 0.01
 
-    size_scale = MinMaxScaler(feature_range=(min_r, max_r))
-    radii = size_scale.fit_transform(np.array(scores).reshape(-1, 1)).flatten()
+    # 🔧 Radii are now fixed (ignore scores entirely)
+    radii = [r_fixed for _ in scores]
 
     updated = [{"x": p["x"], "y": p["y"], "r": r} for p, r in zip(positions, radii)]
 
-    # 🔧 Initial clamping to prevent any starting violations
+    # Initial clamping to keep everything inside bounds
     for p in updated:
         p["x"] = min(max(edge_buffer + p["r"], p["x"]), 1.0 - edge_buffer - p["r"])
         p["y"] = min(max(edge_buffer + p["r"], p["y"]), 1.0 - edge_buffer - p["r"])
@@ -243,15 +240,11 @@ def avoid_overlap(positions, scores, padding=0.02):
         return dist < (a["r"] + b["r"] + padding)
 
     def movement_mask(p, dx, dy):
-        mask_x = 1.0
-        mask_y = 1.0
-
-        new_x = p["x"] + dx
-        new_y = p["y"] + dy
+        mask_x, mask_y = 1.0, 1.0
+        new_x, new_y = p["x"] + dx, p["y"] + dy
 
         if new_x - p["r"] < edge_buffer or new_x + p["r"] > 1.0 - edge_buffer:
             mask_x = 0.0
-
         if new_y - p["r"] < edge_buffer or new_y + p["r"] > 1.0 - edge_buffer:
             mask_y = 0.0
 
@@ -285,6 +278,7 @@ def avoid_overlap(positions, scores, padding=0.02):
             break
 
     return [{"x": p["x"], "y": p["y"], "r": p["r"]} for p in updated]
+
 
 def compute_insight_positions(insights, intra_mat, inter_mat, seed=42):
     np.random.seed(seed)
