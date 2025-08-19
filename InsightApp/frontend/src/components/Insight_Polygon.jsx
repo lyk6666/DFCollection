@@ -154,15 +154,40 @@ function wrapTextToLines(text, maxWidth, fontSize = 14, fontFamily = "sans-serif
   return lines;
 }
 
+function hexToRgbaStr(hex, alpha = 1) {
+  if (!hex || typeof hex !== "string" || hex[0] !== '#') return hex;
+  let h = hex.replace('#', '');
+  if (h.length === 3) {
+    // #RGB -> #RRGGBB
+    h = h.split('').map(c => c + c).join('');
+  } else if (h.length === 4) {
+    // #RGBA -> expand
+    h = h.split('').map(c => c + c).join('');
+  }
+  let r = parseInt(h.slice(0, 2), 16);
+  let g = parseInt(h.slice(2, 4), 16);
+  let b = parseInt(h.slice(4, 6), 16);
+  // if 8-digit hex has alpha, use it (override param)
+  if (h.length === 8) {
+    const a = parseInt(h.slice(6, 8), 16) / 255;
+    alpha = a;
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function lightenRGBColor(colorString, index, maxIndex) {
+  // NEW: support hex input
+  if (typeof colorString === "string" && colorString.startsWith("#")) {
+    colorString = hexToRgbaStr(colorString);
+  }
+
   const match = colorString.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)$/);
   if (!match) return "rgb(200, 200, 200)"; // fallback to gray if malformed
 
   let [r, g, b, a] = match.slice(1).map((v, i) => i < 3 ? Number(v) : v); // convert r/g/b to numbers
-
   const maxIncrement = Math.min(255 - r, 255 - g, 255 - b);
-  const safeMaxIndex = Math.max(1, maxIndex); // avoid divide by zero
-  const fadeRatio = (index + 1) / (safeMaxIndex + 2); // leave headroom
+  const safeMaxIndex = Math.max(1, maxIndex);
+  const fadeRatio = (index) / (safeMaxIndex + 1);
   const increment = Math.round(maxIncrement * fadeRatio);
 
   const newR = Math.min(255, r + increment);
@@ -199,7 +224,7 @@ function interpolateColor(
   ratio,
   startColor = [255, 255, 255],   // initial color
   targetColor = [0, 123, 255],     // final color
-  exponent = 3
+  exponent = 2
 ) {
   const [r1, g1, b1] = startColor;
   const [r2, g2, b2] = targetColor;
@@ -263,16 +288,35 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   const [valueSequences, setValueSequences] = useState({});
   const [polygonSections, setPolygonSections] = useState(null);
 
-  const filterColors = [
-    "rgba(140, 0, 0, 1)",    
-    "rgba(140, 135, 0, 1)",    
-    "rgba(0, 140, 9, 1)",    
-    "rgba(0, 140, 128, 1)", 
-    "rgba(0, 9, 140, 1)",   
-    "rgba(140, 0, 121, 1)",
-    "rgba(140, 0, 0, 1)"  
-  ];
+  // const filterColors = [
+  //   "rgba(140, 0, 0, 1)",    
+  //   "rgba(140, 135, 0, 1)",    
+  //   "rgba(0, 140, 9, 1)",    
+  //   "rgba(0, 140, 128, 1)", 
+  //   "rgba(0, 9, 140, 1)",   
+  //   "rgba(140, 0, 121, 1)",
+  //   "rgba(140, 0, 0, 1)"  
+  // ];
 
+  // Darken a hex color toward black by factor (0..1)
+  function darkenHex(hex, factor = 0.6) {
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const r = parseInt(h.slice(0,2), 16);
+    const g = parseInt(h.slice(2,4), 16);
+    const b = parseInt(h.slice(4,6), 16);
+
+    const newR = Math.max(0, Math.floor(r * (1 - factor)));
+    const newG = Math.max(0, Math.floor(g * (1 - factor)));
+    const newB = Math.max(0, Math.floor(b * (1 - factor)));
+
+    return `#${[newR,newG,newB].map(x => x.toString(16).padStart(2,'0')).join('')}`;
+  }
+
+  // Create a darker scheme from schemeCategory10
+  const darkerSchemeCategory10 = d3.schemeCategory10.map(c => darkenHex(c, 0.25));
+
+  const filterColors = darkerSchemeCategory10
 
   // Responsive layout parameters
   const size = Math.min(width, height);
@@ -462,18 +506,21 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   );
 
   // Step 1. Build color map from collection.measure_set
-  const colorPalette = [
-    "#ffcf33ff",  // yellow
-    "#f781bf",  // pink
-    "#66c2a5",   // teal
-    "#e41a1c",  // red
-    "#377eb8",  // blue
-    "#4daf4a",  // green
-    "#984ea3",  // purple
-    "#ff7f00",  // orange
-    "#a65628",  // brown
-    "#999999",  // grey
-  ];
+  // const colorPalette = [
+  //   "#ffcf33ff",  // yellow
+  //   "#f781bf",  // pink
+  //   "#66c2a5",   // teal
+  //   "#e41a1c",  // red
+  //   "#377eb8",  // blue
+  //   "#4daf4a",  // green
+  //   "#984ea3",  // purple 
+  //   "#ff7f00",  // orange
+  //   "#a65628",  // brown
+  //   "#999999",  // grey
+  // ];
+
+  const colorPalette = d3.schemeSet2;
+
   const uniqueMeasureKeys = (collection?.measure_set || []).map(item =>
     Array.isArray(item) ? item.join("|") : item
   );
@@ -588,7 +635,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         {leafSegments.map(seg => {
           const count = seg.insights?.length || 0;
           const ratio = count / maxInsightCount;
-          const fillColor = count? interpolateColor(ratio, [240, 240, 240], [200, 200, 200]) : "white";
+          const fillColor = count? interpolateColor(ratio, [200, 200, 200], [0, 0, 0]) : "white";
 
           return (
             <polygon
@@ -597,7 +644,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
               fill={fillColor}
               stroke="#aaa"
               strokeWidth={0.5}
-              opacity={1}
+              opacity={0.4}
             />
           );
         })}
@@ -726,10 +773,11 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           }));
 
           const maxCount = d3.max(data, d => d.value) || 1;
-          const chartWidth = length * 0.9
+          const chartWidth = length * (data.length - 1) / data.length;
           const chartHeight = length * 0.2;
-          const barPadding = (size / Math.pow(Math.max(data.length, 1), 1.2)) * 0.12
-          const barWidth = (chartWidth - barPadding * (data.length - 1)) / data.length;
+
+          const barWidth = chartWidth / (1.5 * data.length);
+          const barPadding = (chartWidth - barWidth * data.length) / (data.length - 1);
 
           // const toCenterX = centerX - mx;
           // const toCenterY = centerY - my;
@@ -775,10 +823,10 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
                       width={barWidth}
                       height={height}
                       fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
-                      stroke="grey"
-                      strokeWidth={0.5}
-                      rx={4} // horizontal corner radius
-                      ry={4} // vertical corner radius (optional; if omitted, equals rx)
+                      // stroke="grey"
+                      // strokeWidth={0.5}
+                      rx={1} // horizontal corner radius
+                      ry={1} // vertical corner radius (optional; if omitted, equals rx)
                     />
 
                     <text
@@ -802,8 +850,8 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
                       y={yScale(d.value) - chartHeight * 0.1 * flipLabel}
                       fontSize={getFittedFontSize(
                         valueLabels?.[index] ?? `L${index + 1}`,
-                        chartHeight * 0.15,
-                        barWidth * 1.2
+                        Math.min(barWidth * 1, 9),
+                        chartWidth / data.length
                       )}
                       transform={flipLabel === -1
                         ? `rotate(180, ${index * (barWidth + barPadding) + barWidth / 2}, ${yScale(d.value) + chartHeight * 0.06 * flipLabel})`
@@ -907,20 +955,35 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
       {/* Embedded Color Legend in SVG */}
       {colorMap && (
-        <g transform={`translate(${15}, ${15})`}>
-          <rect x={-width*0.01} y={-height*0.005} width={size * 0.2} height={size * 0.04 * Object.keys(colorMap).length} fill="white" stroke="#ccc" />
-          <text x={0} y={10} fontSize={size * 0.02} fontWeight="bold" fill="#333">Measure Legend:</text>
+        <g transform={`translate(${size * 0.02}, ${size * 0.02})`}>
+          <rect
+            x={0}
+            y={0}
+            width={size * 0.25}
+            height={size * 0.015 + size * 0.05 * Object.keys(colorMap).length}
+            fill="white"
+            // stroke="#ccc"
+            // rx={4}
+          />
+          <text
+            x={size * 0.01}
+            y={size * 0.025}
+            fontSize={size * 0.02}
+            fontWeight="bold"
+            fill="#333"
+          >
+            Measure Legend:
+          </text>
           {Object.entries(colorMap).map(([measureKey, color], i) => (
-            <g key={measureKey} transform={`translate(-5, ${15 * (i + 1)})`}>
-              <circle cx={6} cy={6} r={3} fill={color} stroke="#666" strokeWidth={0.5} />
-              <text x={16} y={9} fontSize={size * 0.016} fill="#333">
+            <g key={measureKey} transform={`translate(${size * 0.02}, ${size * 0.015 + (i + 1) * size * 0.04})`}>
+              <circle r={size * 0.006} fill={color} stroke="#666" strokeWidth={0.5} />
+              <text x={size * 0.025} y={size * 0.005} fontSize={size * 0.018} fill="#333">
                 {measureKey.replace(/\|/g, ", ")}
               </text>
             </g>
           ))}
         </g>
       )}
-
       </svg>
       
     </div>
