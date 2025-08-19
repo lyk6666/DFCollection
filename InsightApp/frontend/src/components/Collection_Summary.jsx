@@ -48,10 +48,13 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
     })).sort((a, b) => a.numTypes - b.numTypes);
   }, [collections]);
 
-  const maxType = Math.max(...typeData.map(d => d.numTypes || 0), 1);
-  const typeColorScale = d3.scaleLinear()
-    .domain([1, maxType])
-    .range([0.3, 0.8]); // range for interpolation intensity
+  // Use schemeBlues (same as Voronoi)
+  const uniqueTypeCounts = Array.from(new Set(typeData.map(d => d.numTypes))).sort((a, b) => a - b);
+  const bluesSize = Math.max(3, Math.min(9, uniqueTypeCounts.length || 3));
+  const blues = d3.schemeBlues[bluesSize];
+  const typeColorScale = d3.scaleOrdinal()
+    .domain(uniqueTypeCounts)
+    .range(blues.slice(blues.length - uniqueTypeCounts.length));
 
   // === 3️⃣ Filter count ===
   const filterCountData = useMemo(() => {
@@ -67,9 +70,13 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
       new Set(Object.keys(counter).map(Number))
     ).sort((a, b) => a - b);
 
+
+    // Use schemeReds (same as polygons)
+    const redsSize = Math.max(3, Math.min(9, uniqueFilterCounts.length || 3));
+    const reds = d3.schemeReds[redsSize];
     const colorScale = d3.scaleOrdinal()
       .domain(uniqueFilterCounts)
-      .range(d3.schemeSpectral[uniqueFilterCounts.length].slice().reverse());
+      .range(reds.slice(reds.length - uniqueFilterCounts.length));
 
     return uniqueFilterCounts.map(filterCount => ({
       filterCount,
@@ -151,10 +158,12 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
               fillOpacity={1}
             >
               {typeData.map((entry, index) => (
-                <Cell
+                <Cell 
                   key={`cell-${index}`}
-                  fill={d3.interpolateBlues(typeColorScale(entry.numTypes))}
-                />
+                  fill={typeColorScale(entry.numTypes)}
+                  stroke="#333"          // 🔹 dark stroke border
+                  strokeWidth={0.2}        // 🔹 thickness
+                   />
               ))}
             </Bar>
           </BarChart>
