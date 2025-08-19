@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import * as d3 from "d3";
 import DominanceIcon from "../assets/icons/Dominance.svg";
 import OutstandingTwinIcon from "../assets/icons/OutstandingTwin.svg";
 import EvennessIcon from "../assets/icons/Evenness.svg";
@@ -15,15 +16,19 @@ const ICONS = {
   "Trend": TrendIcon,
   "Temporal Correlation": TemporalCorrelationIcon,
   "Correlation": CorrelationIcon,
-}
+};
 
 function InsightSimilarity({ width, height, collection, onInsightClick, selectedInsight }) {
-  const svgRef = useRef(null);
   const [positionedInsights, setPositionedInsights] = useState([]);
 
   function adjustColorBrightness(hex, amount) {
-    return '#' + hex.replace(/^#/, '').replace(/../g, color =>
-      ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).slice(-2)
+    return (
+      "#" +
+      hex
+        .replace(/^#/, "")
+        .replace(/../g, (color) =>
+          ("0" + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).slice(-2)
+        )
     );
   }
 
@@ -33,27 +38,29 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
     fetch("http://localhost:5000/api/insight_similarity_layout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ insights: collection.insights })
+      body: JSON.stringify({ insights: collection.insights }),
     })
-      .then(res => res.json())
+      .then((res) => res.json())
       .then(setPositionedInsights)
-      .catch(err => console.error("Error fetching insight layout:", err));
+      .catch((err) => console.error("Error fetching insight layout:", err));
   }, [collection]);
 
   const scaleX = (x) => x * width;
   const scaleY = (y) => y * height;
   const rr = Math.min(width, height);
-  const scaleR = (r) => r * rr;
+  // const scaleR = (r) => r * rr;
 
-  // Find the largest insight per color
-  const largestPerColor = {};
-  positionedInsights.forEach(insight => {
-    const color = insight.color;
-    if (!largestPerColor[color] || insight.r > largestPerColor[color].r) {
-      largestPerColor[color] = insight;
-    }
-  });
-
+  // // Find the largest insight per color (unchanged)
+  // const largestPerColor = useMemo(() => {
+  //   const memo = {};
+  //   positionedInsights.forEach((insight) => {
+  //     const color = insight.color;
+  //     if (!memo[color] || insight.r > memo[color].r) {
+  //       memo[color] = insight;
+  //     }
+  //   });
+  //   return memo;
+  // }, [positionedInsights]);
 
   const insightKey = (i) =>
     JSON.stringify({
@@ -63,29 +70,71 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
       measure: Array.isArray(i?.measure) ? [...i.measure].sort() : [i?.measure],
     });
 
-  return (
-    <svg ref={svgRef} width="100%" height="100%" style={{ background: "white" }}>
-      
-      {/* Draw grid */}
-      {/* {[...Array(21)].map((_, i) => {
-        const posH = i * (width / 20);
-        const posW = i * (height / 20);
-        return (
-          <g key={i}>
-            <line x1={posH} y1={0} x2={posH} y2={height} stroke="#ddd" strokeWidth={1} />
-            <line x1={0} y1={posW} x2={width} y2={posW} stroke="#ddd" strokeWidth={1} />
-          </g>
-        );
-      })} */}
+  // -------------------------
+  // d3.contourDensity OVERLAY
+  // -------------------------
+  // Build a dataset in pixel space (so contours line up with SVG coords).
+  const densityData = useMemo(() => {
+    return positionedInsights.map((d) => ({
+      // Keep original normalized values (0..1) but we'll scale in the accessors
+      x: d.x,
+      y: d.y,
+      // Optional weight: proportional to r or score; tweak as desired
+      w: (d.score ?? 1),
+    }));
+  }, [positionedInsights]);
 
+  // Create the density generator; bandwidth controls smoothing in pixels.
+  const densityGenerator = useMemo(() => {
+    const bandwidthPx = Math.max(8, rr * 0.08); // ~5% of min dimension
+    return d3
+      .contourDensity()
+      .x((d) => scaleX(d.x))
+      .y((d) => scaleY(d.y))
+      .weight((d) => d.w)
+      .size([width, height])
+      .bandwidth(bandwidthPx)
+      .thresholds(10); // number of contour levels
+  }, [width, height, rr]);
+
+  const contours = useMemo(() => densityGenerator(densityData), [densityData, densityGenerator]);
+
+  // Color scale for density levels (higher value → darker/stronger color)
+  const densityMax = useMemo(() => (contours.length ? d3.max(contours, (c) => c.value) : 1), [contours]);
+  const densityColor = useMemo(
+    () => d3.scaleSequential(d3.interpolateGreys).domain([0, densityMax]),
+    [densityMax]
+  );
+
+  return (
+    <svg width="100%" height="100%" style={{ background: "white" }}>
+      {/* =============================== */}
+      {/* 1) DENSITY LAYER (behind nodes) */}
+      {/* =============================== */}
+      <g aria-label="density-contours" opacity={0.35}>
+        {contours.map((contour, i) => (
+          <path
+            key={`contour-${i}`}
+            d={d3.geoPath()(contour)}
+            fill={densityColor(contour.value)}
+            stroke="#000000ff"
+            strokeWidth={1}   // this sets the edge width
+            strokeOpacity={0.3} // make edges slightly transparent
+          />
+        ))}
+      </g>
+
+      {/* =============================== */}
+      {/* 2) NODES + ICONS (original code) */}
+      {/* =============================== */}
       {positionedInsights.map((insight) => {
         const iconUrl = ICONS[insight.type]; // look up the matching SVG
-        const isSelected = (insightKey(insight) === insightKey(selectedInsight));
-        const isLargest = largestPerColor[insight.color]?.id === insight.id;
+        const isSelected = insightKey(insight) === insightKey(selectedInsight);
+        // const isLargest = largestPerColor[insight.color]?.id === insight.id;
 
         const cx = scaleX(insight.x);
         const cy = scaleY(insight.y);
-        const r = scaleR(insight.r);
+        const r = Math.min(width, height) * 0.03 ; // larger for largest insight
 
         const fillColor = isSelected
           ? adjustColorBrightness(insight.color, 0)
@@ -118,15 +167,9 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
             />
 
             {/* Inner white circle as icon holder */}
-            <circle
-              cx={cx}
-              cy={cy}
-              r={r * 0.8}
-              fill="white"
-              pointerEvents="none"
-            />
+            <circle cx={cx} cy={cy} r={r * 0.8} fill="white" pointerEvents="none" />
 
-            {/* Optional: clip to the inner circle so the SVG never spills out */}
+            {/* OPTIONAL: ClipPath to keep icon inside inner circle */}
             {/* <defs>
               <clipPath id={`clip-${insight.id}`}>
                 <circle cx={cx} cy={cy} r={r * 0.8} />
@@ -147,50 +190,12 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
               />
             )}
 
-            <title>
-              {`Type: ${insight.type}
-Group: ${insight.group}
-Score: ${insight.score?.toFixed(3)}
-Measure: ${Array.isArray(insight.measure) ? insight.measure.join(", ") : insight.measure}`}
-            </title>
+            <title>{`Type: ${insight.type}\nGroup: ${insight.group}\nScore: ${insight.score?.toFixed(3)}\nMeasure: ${Array.isArray(insight.measure) ? insight.measure.join(", ") : insight.measure}`}</title>
           </g>
         );
       })}
 
-      {/* Connecting lines between nearby circles */}
-      {/* {positionedInsights.flatMap((a, i) =>
-        positionedInsights.slice(i + 1).map((b) => {
-          const ax = scaleX(a.x);
-          const ay = scaleY(a.y);
-          const ar = scaleR(a.r);
-
-          const bx = scaleX(b.x);
-          const by = scaleY(b.y);
-          const br = scaleR(b.r);
-
-          const dx = bx - ax;
-          const dy = by - ay;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          // Adjust this factor to control when circles are "connected"
-          const threshold = ar + br + 20;
-
-          if (distance <= threshold) {
-            return (
-              <line
-                key={`line-${a.id}-${b.id}`}
-                x1={ax}
-                y1={ay}
-                x2={bx}
-                y2={by}
-                stroke="#ccc"
-                strokeWidth={Math.min(width, height) * 0.002}
-              />
-            );
-          }
-          return null;
-        })
-      )} */}
+      {/* (Optional) connecting lines omitted for clarity; keep your original if needed */}
     </svg>
   );
 }
