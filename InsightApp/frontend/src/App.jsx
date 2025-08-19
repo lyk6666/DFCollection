@@ -315,6 +315,7 @@ function App() {
             selectedFilter={selectedOverviewFilter}
             selectedCollection={selectedCollection}
             history={history}
+            valueSequences={valueSequence}
           />
         </div>
       </div>
