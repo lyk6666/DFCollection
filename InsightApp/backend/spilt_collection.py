@@ -66,8 +66,14 @@ def split_collection_by_filters(collection, filter_sequence):
         total_score = sum(raw_scores)
         total_score = total_score if total_score > 0 else 1e-8  # Prevent divide-by-zero
 
-        # Apply enforced minimum ratio
-        enforced_ratios = [max(score / total_score, min_ratio) for score in raw_scores]
+        enforced_ratios = []
+        for score in raw_scores:
+            if score == 0:
+                # Special rule for zero-score groups
+                enforced_ratios.append(0.05)
+            else:
+                min_ratio = 0.15
+                enforced_ratios.append(max(score / total_score, min_ratio))
 
         # Normalize ratios to sum to 1
         total_enforced = sum(enforced_ratios)
