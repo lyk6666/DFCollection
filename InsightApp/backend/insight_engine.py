@@ -4,7 +4,7 @@ from itertools import product
 from config import (
     MINI_DATASET,
     COMPOUND_MINI_DATASET,
-    UNIFORMITY_CV_THRESHOLD,
+    UNIFORMITY_THRESHOLD,
     THRESHOLD_SIG
 )
 
@@ -103,7 +103,7 @@ def generate_insights():
     import numpy as np
     from scipy.stats import norm, linregress, t
 
-    def test_dominance(values, beta=0.8):
+    def test_dominance(values, beta=0.9):
         values = np.array(values)
         if len(values) < MINI_DATASET:
             # Not enough values to evaluate
@@ -193,7 +193,7 @@ def generate_insights():
 
     #     return significance
 
-    def test_outstanding_twin(values, beta=0.8):
+    def test_outstanding_twin(values, beta=0.9):
         values = np.array(values)
         if len(values) < MINI_DATASET + 1:
             # Not enough values to evaluate
@@ -204,7 +204,7 @@ def generate_insights():
 
         # Step 2: Exclude the maximum value and fit power-law
         y = sorted_values[2:]
-        ranks = np.arange(3, len(sorted_values)+1)  # ranks start from 3
+        ranks = np.arange(2, len(sorted_values))  # ranks start from 3
 
         # Log-transform for linear regression: log(y) = log(alpha) - beta*log(rank)
         if len(y) == 0 or np.any(y <= 0) or np.isnan(y).any():
@@ -228,7 +228,7 @@ def generate_insights():
         
         # Step 4: Compute residual for top value
         x_max = sorted_values[0] + sorted_values[1]
-        x1_hat = alpha_hat * (1**(-beta) + 2**(-beta))
+        x1_hat = alpha_hat * (1**(-beta))
         R = x_max - x1_hat
 
         # Step 5: Compute p-value for R under residuals' Gaussian model
@@ -238,120 +238,233 @@ def generate_insights():
 
         return significance
 
-    def test_evenness(values):
-        values = np.array(values)
-        if len(values) < MINI_DATASET:
-            return 0.0
-        if len(values) < 2 or np.isnan(values).all():
-            return 0.0
-        mu = np.nanmean(values)
-        residuals = values - mu
-        abs_residuals = np.abs(residuals)
-        max_abs_resid = np.max(abs_residuals)
-        # Fit Gaussian to the residuals
-        if len(residuals) < 2:
-            return 0.0
-        resid_std = np.nanstd(residuals, ddof=1)
-        if resid_std == 0 or np.isnan(resid_std):
-            return 0.0
-        # p-value: probability of observing such a large residual under N(0, resid_std^2)
-        # Two-sided test
-        p_value = 2 * (1 - norm.cdf(max_abs_resid, loc=0, scale=resid_std))
-        significance = 1 - p_value
-        return significance
+    def test_evenness(values, eps=1e-12):
+        x = np.asarray(values, dtype=float)
 
-    def test_change_point(x, y, window_size=3):
-        x = np.array(x)
-        y = np.array(y)
+        # keep only finite values
+        x = x[np.isfinite(x)]
+        n = x.size
+
+        if n < max(2, MINI_DATASET):
+            return 0.0
+
+        mu = np.nanmean(x)
+        if not np.isfinite(mu) or abs(mu) < eps:
+            # CV undefined/unstable when mean ~ 0
+            return 0.0
+
+        s = np.nanstd(x, ddof=0)
+        if not np.isfinite(s):
+            return 0.0
+
+        cv = s / abs(mu)   # Coefficient of Variation (nonnegative)
+        score = 1.0 - cv   # higher = more even
+        # Keep score in [0, 1]
+        return float(np.clip(score, 0.0, 1.0))
+
+    def test_change_point(x, y, window_size=3, require_slope=False):
+        """
+        Significance of mean-value change point per spec:
+
+        - Left window:  n points immediately before k  -> {X_left, Y_left}
+        - Right window: n points starting at k         -> {X_right, Y_right}
+        - Combined window around k:                    -> {X, Y} of size 2n
+
+        Mean-change test:
+            Ybar_left  = mean(Y_left)
+            Ybar_right = mean(Y_right)
+            sigma_Y    = sqrt( E[Y^2] - (E[Y])^2 )   # population std over the 2n points
+            sigma_mu_Y = sigma_Y / sqrt(n)
+            kmean      = |Ybar_left - Ybar_right| / sigma_mu_Y
+            p_mean     = 2 * (1 - Phi(kmean))        # two-sided
+            sig_mean   = 1 - p_mean
+
+        Optionally, also test for slope change using local linear regressions and
+        combine with AND (min) if require_slope=True. Slope test is two-sided.
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
         N = len(y)
-        n = window_size
-        if N < 2 * n + 1:
+        n = int(window_size)
+
+        if N < 2 * n + 1 or n < 1:
             return 0.0, None, {}
-        best_sig = 0
+
+        best_sig = 0.0
         best_k = None
         details = {}
-        for k in range(n, N-n):
-            # Left/right windows
-            x_left = x[k-n:k]
-            y_left = y[k-n:k]
-            x_right = x[k:k+n]
-            y_right = y[k:k+n]
-            # Mean change
-            mean_left = np.mean(y_left)
-            mean_right = np.mean(y_right)
+
+        # k indexes the boundary between left and right windows:
+        # left:  [k-n, ..., k-1]  (n points)
+        # right: [k,   ..., k+n-1] (n points)
+        for k in range(n, N - n):
+            # Windows
+            x_left  = x[k - n : k]
+            y_left  = y[k - n : k]
+            x_right = x[k : k + n]
+            y_right = y[k : k + n]
+
+            # Guard: need finite data
+            if (len(y_left) != n) or (len(y_right) != n):
+                continue
+            if not (np.all(np.isfinite(y_left)) and np.all(np.isfinite(y_right))):
+                continue
+
+            # Means
+            mean_left  = float(np.mean(y_left))
+            mean_right = float(np.mean(y_right))
+
+            # Combined window {X, Y} of size 2n (population moments)
             y_full = np.concatenate([y_left, y_right])
-            if len(y_full) < 2 or np.isnan(y_full).all():
+            if not np.all(np.isfinite(y_full)):
                 continue
-            sigma_Y = np.nanstd(y_full, ddof=1)
-            if sigma_Y == 0 or np.isnan(sigma_Y):
+
+            # Population variance via second moment: Var = E[Y^2] - (E[Y])^2
+            Ey   = np.mean(y_full)
+            Ey2  = np.mean(y_full ** 2)
+            varY = Ey2 - Ey ** 2
+            if not np.isfinite(varY) or varY <= 0:
+                # cannot compute a meaningful z-score
                 continue
+
+            sigma_Y    = np.sqrt(varY)          # ddof = 0 (population)
             sigma_mu_Y = sigma_Y / np.sqrt(n)
-            sig_mean = 0.0
-            if sigma_mu_Y > 0:
-                kmean = np.abs(mean_left - mean_right) / sigma_mu_Y
-                p_mean = 1 - norm.cdf(kmean)
-                sig_mean = 1 - p_mean
-            # Slope change
-            lr_left = linregress(x_left, y_left)
+
+            # kmean and two-sided p-value
+            kmean   = abs(mean_left - mean_right) / sigma_mu_Y if sigma_mu_Y > 0 else np.inf
+            p_mean  = 2 * (1 - norm.cdf(kmean))
+            sig_mean = 1 - p_mean
+            sig_mean = float(np.clip(sig_mean, 0.0, 1.0))
+
+            # Optional slope-change gate (two-sided z on difference of slopes)
+            sig_slope = 1.0  # neutral if not required
+            slope_info = {}
+
+            lr_left  = linregress(x_left,  y_left)
             lr_right = linregress(x_right, y_right)
-            slope_left, se_left = lr_left.slope, lr_left.stderr
+
+            slope_left,  se_left  = lr_left.slope,  lr_left.stderr
             slope_right, se_right = lr_right.slope, lr_right.stderr
-            sig_slope = 0.0
-            if se_left and se_right and se_left > 0 and se_right > 0:
-                z_slope = np.abs(slope_left - slope_right) / np.sqrt(se_left**2 + se_right**2)
-                p_slope = 1 - norm.cdf(z_slope)
-                sig_slope = 1 - p_slope
-            # Combined significance (AND): must be significant in both
-            sig_combined = min(sig_mean, sig_slope)
+
+            if require_slope:
+                if (
+                    np.isfinite(slope_left) and np.isfinite(slope_right)
+                    and np.isfinite(se_left) and np.isfinite(se_right)
+                    and se_left > 0 and se_right > 0
+                ):
+                    z_slope = abs(slope_left - slope_right) / np.sqrt(se_left ** 2 + se_right ** 2)
+                    p_slope = 2 * (1 - norm.cdf(z_slope))  # two-sided
+                    sig_slope = 1 - p_slope
+                    sig_slope = float(np.clip(sig_slope, 0.0, 1.0))
+                    slope_info = {
+                        "slope_left": slope_left,
+                        "slope_right": slope_right,
+                        "se_left": se_left,
+                        "se_right": se_right,
+                        "z_slope": z_slope,
+                        "p_slope": p_slope,
+                    }
+                else:
+                    # If slope is required but cannot be computed reliably, treat as non-significant
+                    sig_slope = 0.0
+
+            # Combine (AND) only if slope gate is required; otherwise mean-only
+            sig_combined = min(sig_mean, sig_slope) if require_slope else sig_mean
+
             details[k] = {
-                'sig_mean': sig_mean,
-                'sig_slope': sig_slope,
-                'sig_combined': sig_combined
+                "mean_left": mean_left,
+                "mean_right": mean_right,
+                "Ey": Ey,
+                "Ey2": Ey2,
+                "sigma_Y_pop": sigma_Y,
+                "sigma_mu_Y": sigma_mu_Y,
+                "kmean": kmean,
+                "p_mean": p_mean,
+                "sig_mean": sig_mean,
+                "sig_slope": sig_slope,
+                "sig_combined": sig_combined,
+                **({"slope_details": slope_info} if slope_info else {}),
             }
+
             if sig_combined > best_sig:
                 best_sig = sig_combined
                 best_k = k
-        return best_sig, best_k, details
 
-    def test_trend(x, y):
-        x = np.array(x)
-        y = np.array(y)
-        if len(x) < MINI_DATASET:
-            return 0  # Not enough data
+        return float(best_sig), best_k, details
+
+    def test_trend(x, y, max_turbulence=0.10):
+        """
+        Detect an obvious trend with a bounded turbulence level.
+
+        Steps:
+        1) Fit y = a + b x via OLS. Compute two-sided p-value for slope b.
+            sig_slope = 1 - p_value.
+        2) Compute residuals; define turbulence = std(residuals) / (|b| * (max(x)-min(x))).
+            Map to a [0,1] 'turbulence significance':
+                sig_turb = clip(1 - turbulence / max_turbulence, 0, 1)
+            (==1 if turbulence=0, falls to 0 when turbulence reaches max_turbulence.)
+        3) Overall significance requires BOTH: return min(sig_slope, sig_turb).
+
+        Args:
+        x, y : sequences of equal length
+        max_turbulence : acceptable turbulence ratio threshold (default 0.30)
+
+        Returns:
+        significance in [0,1]
+        """
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+
+        if len(x) != len(y) or len(x) < MINI_DATASET:
+            return 0.0
+
+        # Guard for finite values
+        mask = np.isfinite(x) & np.isfinite(y)
+        if mask.sum() < MINI_DATASET:
+            return 0.0
+        x, y = x[mask], y[mask]
+
+        # OLS trend
         res = linregress(x, y)
         slope = res.slope
+        intercept = res.intercept
         se = res.stderr
         n = len(x)
-        if se == 0 or np.isnan(se):
-            return 0
+
+        if not np.isfinite(slope) or not np.isfinite(se) or se <= 0 or n < 3:
+            return 0.0
+
+        # Two-sided slope significance
         t_stat = slope / se
         df = n - 2
-        # Two-tailed p-value (test for any trend, positive or negative)
         p_value = 2 * (1 - t.cdf(abs(t_stat), df))
-        significance = 1 - p_value
+        sig_slope = float(np.clip(1 - p_value, 0.0, 1.0))
+
+        # Turbulence computation
+        y_hat = intercept + slope * x
+        residuals = y - y_hat
+        if residuals.size < 2:
+            return 0.0
+
+        resid_std = np.nanstd(residuals, ddof=1)
+        span_x = float(np.max(x) - np.min(x))
+        amplitude = abs(slope) * span_x
+
+        # If the fitted trend is flat or span is zero, turbulence is undefined → no obvious trend
+        if amplitude <= 0 or not np.isfinite(resid_std):
+            return 0.0
+
+        turbulence = resid_std / amplitude
+
+        # Map turbulence to [0,1]: 1 when perfectly smooth, 0 at the threshold
+        if not np.isfinite(turbulence) or max_turbulence <= 0:
+            return 0.0
+        sig_turb = float(np.clip(1 - (turbulence / max_turbulence), 0.0, 1.0))
+
+        # Require BOTH: strong slope and acceptable turbulence
+        significance = min(sig_slope, sig_turb)
         return significance
 
-    # def test_evenness(values):
-    #     values = np.array(values)
-    #     if len(values) < MINI_DATASET:
-    #         return 0.0
-    #     if len(values) < 2 or np.isnan(values).all():
-    #         return 0.0
-    #     mu = np.nanmean(values)
-    #     residuals = values - mu
-    #     abs_residuals = np.abs(residuals)
-    #     max_abs_resid = np.max(abs_residuals)
-    #     # Fit Gaussian to the residuals
-    #     if len(residuals) < 2:
-    #         return 0.0
-    #     resid_std = np.nanstd(residuals, ddof=1)
-    #     if resid_std == 0 or np.isnan(resid_std):
-    #         return 0.0
-    #     # p-value: probability of observing such a large residual under N(0, resid_std^2)
-    #     # Two-sided test
-    #     p_value = 2 * (1 - norm.cdf(max_abs_resid, loc=0, scale=resid_std))
-    #     significance = 1 - p_value
-    #     return significance
 
     def test_temporal_correlation(x, y):
         x = np.array(x)
@@ -451,36 +564,25 @@ def generate_insights():
                     insight_type = "Outstanding Twin"
                     significance = otwin_sig
                 else:
-                    # 4. Uniformity: coefficient of variation < threshold
-                    mean = np.mean(values)
-                    std = np.std(values, ddof=1)
-                    cv = std / mean if mean != 0 else 0
-                    if cv < UNIFORMITY_CV_THRESHOLD:
-                        uniformity_sig = test_evenness(values)
-                        if uniformity_sig > THRESHOLD_SIG:
-                            insight_type = "Evenness"
-                            significance = uniformity_sig
+                    evenness_sig = test_evenness(values)
+                    if evenness_sig > UNIFORMITY_THRESHOLD:
+                        insight_type = "Evenness"
+                        significance = evenness_sig
 
         # Ordinal (Single Shape)
         else:
             x = np.arange(len(values))
-            # 1. Trend
-            trend_sig = test_trend(x, values)
-            if trend_sig > THRESHOLD_SIG:
-                insight_type = "Trend"
-                significance = trend_sig
+            # 1. Change Point
+            cp_sig, cp_idx, _ = test_change_point(x, values, window_size=3)
+            if cp_sig > THRESHOLD_SIG:
+                insight_type = "Change Point"
+                significance = cp_sig   
             else:
-                # 2. Change Point
-                cp_sig, cp_idx, _ = test_change_point(x, values, window_size=3)
-                if cp_sig > THRESHOLD_SIG:
-                    insight_type = "Change Point"
-                    significance = cp_sig
-                # else:
-                #     # 3. Evenness
-                #     evenness_sig = test_evenness(values)
-                #     if evenness_sig > THRESHOLD_SIG:
-                #         insight_type = "Evenness"
-                #         significance = evenness_sig
+                # 2. Trend
+                trend_sig = test_trend(x, values)
+                if trend_sig > THRESHOLD_SIG:
+                    insight_type = "Trend"
+                    significance = trend_sig
 
         # Record single insight
         if insight_type:
