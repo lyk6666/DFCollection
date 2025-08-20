@@ -6,142 +6,68 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  PieChart,
-  Pie,
   Cell,
-  Legend,
+  CartesianGrid
 } from "recharts";
+
+const TYPE_METADATA = {
+  "Dominance": ["SinglePoint", "#1f77b4"],
+  "Outstanding Twin": ["SinglePoint", "#1f77b4"],
+  "Evenness": ["SinglePoint", "#1f77b4"],
+  "Change Point": ["SingleShape", "#ff7f0e"],
+  "Trend": ["SingleShape", "#ff7f0e"],
+  "Temporal Correlation": ["Compound", "#2ca02c"],
+  "Correlation": ["Compound", "#2ca02c"],
+};
+
+const CATEGORY_ORDER = { SinglePoint: 0, SingleShape: 1, Compound: 2, Unknown: 3 };
 
 function Insight_Summary({ width, height, selectedCollection }) {
   const insights = Array.isArray(selectedCollection?.insights)
     ? selectedCollection.insights
     : [];
 
-  // ----- Layout decisions (responsive) -----
-  const isWide = width > height * 1.2; // side-by-side if wide, else stacked
-  const gap = Math.max(8, Math.min(16, Math.floor(Math.min(width, height) * 0.02)));
-  const panelW = isWide ? (width - gap) / 2 : width;
-  const panelH = isWide ? height : (height - gap) / 2;
+  const panelW = width;
+  const panelH = height;
 
-  // Scaled typography/margins
-  const tickFont = Math.max(9, Math.min(panelW * 0.022, panelH * 0.06));
+  // Typography / margins
+  const tickFont = Math.max(8, Math.min(panelW * 0.01, panelH * 0.02));
   const labelFont = Math.max(10, panelH * 0.06);
-  const mTop = Math.max(8, panelH * 0.06);
-  const mRight = Math.max(6, panelW * 0.04);
-  const mLeft = Math.max(6, panelW * 0.06);
-  const mBottom = Math.max(8, panelH * 0.08);
+  const mTop = 0;
+  const mRight = panelW * 0.06;
+  const mLeft = -panelW * 0.06;
+  const mBottom = 0;
 
-  // ----- Score histogram (0..1, 10 bins) -----
-  const scoreData = useMemo(() => {
-    if (!insights.length) return [];
-    const scores = insights
-      .map(d => Number(d?.score))
-      .filter(v => Number.isFinite(v));
+  // Aggregate & Sort (by category group, then score desc, then count desc)
+  const { pairedData, maxTotalScore, maxCount } = useMemo(() => {
+    if (!insights.length) return { pairedData: [], maxTotalScore: 0, maxCount: 0 };
 
-    if (!scores.length) return [];
-
-    const bins = 10;
-    const counts = Array.from({ length: bins }, () => 0);
-    scores.forEach(s => {
-      let idx = Math.floor(s * bins);
-      if (idx >= bins) idx = bins - 1; // clamp 1.0 to last bin
-      if (idx < 0) idx = 0;
-      counts[idx]++;
-    });
-
-    return counts.map((c, i) => {
-      const start = (i / bins).toFixed(1);
-      const end = ((i + 1) / bins).toFixed(1);
-      return { bin: `${start}–${end}`, count: c, start: i / bins, end: (i + 1) / bins };
-    });
-  }, [insights]);
-
-  // ----- Type distribution -----
-  const typeData = useMemo(() => {
-    if (!insights.length) return [];
-    const map = new Map();
-    insights.forEach(d => {
+    const byType = new Map();
+    for (const d of insights) {
       const t = d?.type ?? "Unknown";
-      map.set(t, (map.get(t) || 0) + 1);
+      const s = Number(d?.score);
+      const entry = byType.get(t) || { type: t, totalScore: 0, count: 0 };
+      if (Number.isFinite(s)) entry.totalScore += s;
+      entry.count += 1;
+      byType.set(t, entry);
+    }
+
+    const arr = Array.from(byType.values());
+    arr.sort((a, b) => {
+      const catA = TYPE_METADATA[a.type]?.[0] || "Unknown";
+      const catB = TYPE_METADATA[b.type]?.[0] || "Unknown";
+      const orderA = CATEGORY_ORDER[catA] ?? 99;
+      const orderB = CATEGORY_ORDER[catB] ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
+      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+      return b.count - a.count;
     });
-    // sort desc
-    return Array.from(map.entries())
-      .map(([type, count]) => ({ type, count }))
-      .sort((a, b) => b.count - a.count);
+
+    const ms = arr.reduce((m, d) => Math.max(m, d.totalScore), 0);
+    const mc = arr.reduce((m, d) => Math.max(m, d.count), 0);
+    return { pairedData: arr, maxTotalScore: ms, maxCount: mc };
   }, [insights]);
-
-  const palette = ["#8884d8", "#82ca9d", "#ffc658", "#8dd1e1", "#a4de6c", "#d0ed57", "#ff9f80", "#bfa8ff", "#80b1d3", "#fdb462"];
-
-  // ----- Panels -----
-  const ScorePanel = (
-    <div style={{ width: panelW, height: panelH, background: "#fff", border: "1px solid #eee" }}>
-      <div style={{ padding: `${Math.max(6, panelH * 0.04)}px ${Math.max(8, panelW * 0.03)}px`, fontSize: Math.max(12, panelH * 0.08), fontWeight: 600, color: "#555" }}>
-        Score Distribution
-      </div>
-      <div style={{ width: "100%", height: `calc(100% - ${Math.max(6, panelH * 0.04) + 2}px)` }}>
-        {scoreData.length ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={scoreData} margin={{ top: mTop, right: mRight, left: mLeft, bottom: mBottom }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="bin"
-                tick={{ fontSize: tickFont }}
-                label={{ value: "Score (0–1)", position: "insideBottom", offset: 2, fontSize: labelFont }}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{ fontSize: tickFont }}
-                label={{ value: "Count", angle: -90, position: "insideLeft", offset: 5, fontSize: labelFont }}
-              />
-              <Tooltip />
-              <Bar dataKey="count" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <EmptyState />
-        )}
-      </div>
-    </div>
-  );
-
-  const TypePanel = (
-    <div style={{ width: panelW, height: panelH, background: "#fff", border: "1px solid #eee" }}>
-      <div style={{ padding: `${Math.max(6, panelH * 0.04)}px ${Math.max(8, panelW * 0.03)}px`, fontSize: Math.max(12, panelH * 0.08), fontWeight: 600, color: "#555" }}>
-        Type Distribution
-      </div>
-      <div style={{ width: "100%", height: `calc(100% - ${Math.max(6, panelH * 0.04) + 2}px)` }}>
-        {typeData.length ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={typeData} layout="vertical" margin={{ top: mTop, right: mRight, left: mLeft, bottom: mBottom }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                type="number"
-                allowDecimals={false}
-                tick={{ fontSize: tickFont }}
-                label={{ value: "Count", position: "insideBottom", offset: 2, fontSize: labelFont }}
-              />
-              <YAxis
-                type="category"
-                dataKey="type"
-                width={Math.max(60, panelW * 0.22)}
-                tick={{ fontSize: tickFont }}
-              />
-              <Tooltip />
-              <Bar dataKey="count">
-                {typeData.map((_, i) => (
-                  <Cell key={i} fill={palette[i % palette.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <EmptyState />
-        )}
-      </div>
-    </div>
-  );
 
   if (!selectedCollection) {
     return (
@@ -151,18 +77,118 @@ function Insight_Summary({ width, height, selectedCollection }) {
     );
   }
 
+  const hasData = pairedData.length > 0;
+  const scoreDomainMax = Math.max(1, Math.ceil(maxTotalScore || 0));
+  const countDomainMax = Math.max(1, Math.ceil(maxCount || 0));
+
+  // =========================
+  // Dynamic bar sizing (key!)
+  // =========================
+  // Inner plotting height (px)
+  const innerH = Math.max(0, panelH - (mTop + mBottom));
+
+  // Number of category rows
+  const groups = Math.max(1, pairedData.length);
+
+  // Gap between category rows (px)
+  const groupGapPx = innerH * 0.09;
+
+  // Gap between the two bars in the same group (px)
+  const withinGroupGapPx = innerH * 0.01;
+
+  // Height available per group after subtracting between-group gap
+  const bandHeight = innerH / groups;
+  const availableInBand = Math.max(0, bandHeight - groupGapPx);
+
+  // Two bars per group → thickness each:
+  const barThickness = Math.min(
+    8,
+    Math.floor((availableInBand - withinGroupGapPx) / 2)
+  );
+
   return (
-    <div
-      style={{
-        width,
-        height,
-        display: "flex",
-        flexDirection: isWide ? "row" : "column",
-        gap,
-      }}
-    >
-      {ScorePanel}
-      {TypePanel}
+    <div style={{ width, height }}>
+      <div style={{ width: panelW, height: panelH, background: "#fff", border: "1px solid #eee" }}>
+        <div style={{ width: "100%", height: "100%" }}>
+          {hasData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={pairedData}
+                layout="vertical"
+                margin={{ top: mTop, right: mRight, left: mLeft, bottom: mBottom }}
+                // These two control gaps in pixels:
+                barCategoryGap={groupGapPx}
+                barGap={withinGroupGapPx}
+              >
+                <CartesianGrid strokeDasharray="4 3" />
+
+                {/* Y-axis categories */}
+                <YAxis
+                  type="category"
+                  dataKey="type"
+                  width={Math.max(80, panelW * 0.2)}
+                  tick={{ fontSize: tickFont }}
+                />
+
+                {/* Top X-axis: Score */}
+                <XAxis
+                  xAxisId="score"
+                  type="number"
+                  domain={[0, scoreDomainMax]}
+                  orientation="top"
+                  tick={{ fontSize: tickFont }}
+                  label={{ value: "Score (Sum within type)", position: "insideTop", offset: 4, fontSize: labelFont }}
+                />
+
+                {/* Bottom X-axis: Count */}
+                <XAxis
+                  xAxisId="count"
+                  type="number"
+                  domain={[0, countDomainMax]}
+                  orientation="bottom"
+                  tick={{ fontSize: tickFont }}
+                  label={{ value: "Type Count", position: "insideBottom", offset: 2, fontSize: labelFont }}
+                />
+
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (name === "totalScore") return [value, "Score (sum)"];
+                    if (name === "count") return [value, "Count"];
+                    return [value, name];
+                  }}
+                />
+
+                {/* Score bars: ALWAYS grey; thickness from height math */}
+                <Bar
+                  name="Score (sum)"
+                  dataKey="totalScore"
+                  xAxisId="score"
+                  barSize={barThickness}
+                  isAnimationActive={false}
+                  fill="#999999"
+                  opacity={0.5}
+                />
+
+                {/* Count bars: colored per TYPE_METADATA; same thickness */}
+                <Bar
+                  name="Count"
+                  dataKey="count"
+                  xAxisId="count"
+                  barSize={barThickness}
+                  isAnimationActive={false}
+                >
+                  {pairedData.map((d, i) => {
+                    const color = TYPE_METADATA[d.type]?.[1] || "#cccccc";
+                    return <Cell key={`count-${i}`} fill={color} opacity={0.6} />;
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
