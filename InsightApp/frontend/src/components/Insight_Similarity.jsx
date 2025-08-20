@@ -125,7 +125,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
       </g>
 
       {/* =============================== */}
-      {/* 2) NODES + ICONS (original code) */}
+      {/* 2) NODES + ICONS */}
       {/* =============================== */}
       {positionedInsights.map((insight) => {
         const iconUrl = ICONS[insight.type]; // look up the matching SVG
@@ -137,7 +137,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
         const r = Math.min(width, height) * 0.03 ; // larger for largest insight
 
         const fillColor = isSelected
-          ? adjustColorBrightness(insight.color, 0)
+          ? insight.color
           : adjustColorBrightness(insight.color, 80);
 
         return (
