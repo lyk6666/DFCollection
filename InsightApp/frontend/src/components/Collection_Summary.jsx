@@ -128,8 +128,8 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
             <Area
               type="monotone"
               dataKey="count"
-              stroke="#FF6600"
-              fill="#FFCCAA"
+              stroke="#a5a5a5ff"
+              fill="#cfcfcfff"
               fillOpacity={0.4}
               dot={{ r: 0, stroke: '#FF6600', strokeWidth: 1 }}
               activeDot={{ r: 4 }}
