@@ -44,17 +44,21 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     }
 
     // ------- per-panel sizing -------
-    const titleH = showMeta ? cellH * 0.10 : cellH * 0.08; // taller for current
-    const metaH  = showMeta ? cellH * 0.15 : 0;            // only current shows meta
+    const titleH = showMeta ? cellH * 0.10 : cellH * 0.10; // taller for current
+    const metaH  = showMeta ? cellH * 0.15 : cellH * 0.1;            // only current shows meta
     const innerXPad = pad * 2;
 
     const localChartW = Math.max(0, cellW - innerXPad);
-    const localChartH = Math.max(60, cellH - innerXPad - titleH - metaH);
+    const localChartH = Math.max(40, cellH - innerXPad - titleH - metaH);
+
+    const XaxisOffset = localChartH * 0.05; // offset for X axis label
+    const YaxisOffset = localChartW * 0.1
 
     // fonts/margins proportional to local panel
     const tickFont       = Math.max(8, Math.min(localChartW * 0.02, localChartH * 0.06));
     const axisLabelFont  = Math.max(4, localChartH * 0.04);
     const commonMargins  = { top: 0, right: width * 0.02, left: -width * 0.02, bottom: 0 };
+    const TCMargins = {top: 0, right: -width * 0.015, left: -width * 0.015, bottom: 0}
 
     const {
       subspace = {},
@@ -98,7 +102,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
             style={{
               flex: 1,
               paddingRight: localChartW * 0.4,
-              paddingBottom: localChartH * 0.02,
+              paddingBottom: localChartH * 0.03,
               paddingTop: localChartH * 0.01,
               textAlign: "center",
               fontSize: width * 0.01,
@@ -193,10 +197,11 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   nameKey={breakdown}
                   labelLine={false}
                   cx="50%"
-                  cy="50%"
+                  cy="45%"
                   outerRadius={Math.min(localChartW, localChartH) * 0.4}
                   paddingAngle={1}
                   label={renderCustomLabel}
+                  isAnimationActive={false}
                 >
                   {data.map((entry, i) => (
                     <Cell key={`cell-${i}`} fill={colors[i % colors.length]} />
@@ -212,21 +217,21 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
               <BarChart data={data} margin={commonMargins}>
-                <CartesianGrid strokeDasharray="3 3" />
+                {/* <CartesianGrid strokeDasharray="3 3" /> */}
                 <XAxis
                   dataKey={breakdown}
                   interval={0}
                   ticks={data.map(d => d[breakdown])}
                   tick={{ fontSize: tickFont, angle: -10 }}
-                  label={{ value: breakdown, position: "insideBottom", offset: 2, fontSize: axisLabelFont }}
+                  label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
                 <YAxis
                   tick={{ fontSize: tickFont }}
                   textAnchor="middle"
-                  label={{ value: measureKey, angle: -90, position: "insideLeft", offset: 25, fontSize: axisLabelFont }}
+                  label={{ value: measureKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip />
-                <Bar dataKey={measureKey} fill="#4682B4" />
+                <Bar dataKey={measureKey} fill="#4682B4" isAnimationActive={false}/>
               </BarChart>
             </ResponsiveContainer>
           );
@@ -236,16 +241,16 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
               <LineChart data={data} margin={commonMargins}>
-                <CartesianGrid strokeDasharray="3 3" />
+                {/* <CartesianGrid strokeDasharray="3 3" /> */}
                 <XAxis
                   dataKey={breakdown}
                   ticks={data.map(d => d[breakdown])}
-                  tick={{ fontSize: tickFont, angle: -15 }}
-                  label={{ value: breakdown, position: "insideBottom", offset: 2, fontSize: axisLabelFont }}
+                  tick={{ fontSize: tickFont, angle: -10 }}
+                  label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
                 <YAxis
                   tick={{ fontSize: tickFont }}
-                  label={{ value: measureKey, angle: -90, position: "insideLeft", offset: 25, fontSize: axisLabelFont }}
+                  label={{ value: measureKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip />
                 <Line
@@ -255,6 +260,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   strokeWidth={2}
                   dot={{ r: 0 }}
                   activeDot={{ r: Math.max(3, localChartW * 0.008) }}
+                  isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -264,41 +270,81 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           const [xKey, yKey] = Array.isArray(measure) ? measure : [measure, measure];
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
-              <LineChart data={data} margin={commonMargins}>
-                <CartesianGrid strokeDasharray="3 3" />
+              <LineChart data={data} margin={TCMargins}>
+                {/* <CartesianGrid strokeDasharray="3 3" /> */}
                 <XAxis
                   dataKey="index"
                   tick={{ fontSize: tickFont }}
-                  label={{ value: breakdown, position: "insideBottom", offset: 7, fontSize: axisLabelFont }}
+                  label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
+
+                {/* LEFT Y-AXIS for the first line */}
                 <YAxis
+                  yAxisId="left"
                   tick={{ fontSize: tickFont }}
                   label={{
-                    value: Array.isArray(measure) ? measure.join(" & ") : String(measure),
-                    angle: -90, position: "insideLeft", offset: 25, fontSize: axisLabelFont
+                    value: xKey,
+                    angle: -90,
+                    position: "insideLeft",
+                    offset: YaxisOffset,
+                    fontSize: axisLabelFont
                   }}
                 />
+
+                {/* RIGHT Y-AXIS for the second line */}
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: tickFont }}
+                  label={{
+                    value: yKey,
+                    angle: 90,
+                    position: "insideRight",
+                    offset: YaxisOffset,
+                    fontSize: axisLabelFont
+                  }}
+                />
+
                 <Tooltip />
-                <Line type="monotone" dataKey={xKey} stroke="#4682B4" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey={yKey} stroke="#82ca9d" strokeWidth={2} dot={false} />
+
+                {/* Bind each line to its axis */}
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey={xKey}
+                  stroke="#4682B4"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey={yKey}
+                  stroke="#82ca9d"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           );
         }
+
 
         case "Correlation": {
           const [xKey, yKey] = Array.isArray(measure) ? measure : [measure, measure];
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
               <ScatterChart data={data} margin={commonMargins}>
-                <CartesianGrid strokeDasharray="3 3" />
+                {/* <CartesianGrid strokeDasharray="3 3" /> */}
                 <XAxis
                   type="number"
                   dataKey={xKey}
                   name={xKey}
                   domain={["auto", "auto"]}
                   tick={{ fontSize: tickFont }}
-                  label={{ value: xKey, position: "insideBottom", offset: 2, fontSize: axisLabelFont }}
+                  label={{ value: xKey, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
                 <YAxis
                   type="number"
@@ -306,10 +352,10 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   name={yKey}
                   domain={["auto", "auto"]}
                   tick={{ fontSize: tickFont }}
-                  label={{ value: yKey, angle: -90, position: "insideLeft", offset: 25, fontSize: axisLabelFont }}
+                  label={{ value: yKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                <Scatter data={data} fill="#4682B4" />
+                <Scatter data={data} fill="#4682B4" isAnimationActive={false}/>
               </ScatterChart>
             </ResponsiveContainer>
           );
@@ -325,7 +371,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
         style={{
           height: metaH,
           padding: pad,
-          fontSize: width * 0.005,
+          fontSize: localChartW * 0.02,
           color: "grey",
           borderTop: "1px solid #eee",
           overflow: "hidden",
@@ -381,7 +427,8 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   objectFit: "contain",
                   border: "1px solid #ddd",
                   background: "#fff",
-                  boxShadow: "0 3px 3px rgba(0,0,0,0.2)"
+                  boxShadow: "0 3px 3px rgba(0,0,0,0.2)",
+                  opacity: 0.75,
                 }}
               />
             )}
