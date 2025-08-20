@@ -328,7 +328,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
   const fontSize = size * 0.025;
   const labelOffset = size * 0.16;
-  const _baseRadius = size * 0.003;
+  const _baseRadius = size * 0.004;
   // const _barWidth = size * 0.015;
   // const _barGap = size * 0.004;
   // const _maxBarHeight = size * 0.1;
