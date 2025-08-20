@@ -213,7 +213,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
         }
 
         case "Outstanding Twin":
-        case "Uniformity":
+        case "Evenness":
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
               <BarChart data={data} margin={commonMargins}>
