@@ -110,48 +110,10 @@ function generateInsightPoints(vertices, count) {
   return points;
 }
 
-// Generate a regular polygon path (same as FullView)
-function createPolygonPath(sides, radius, cx, cy) {
-  const angleStep = (2 * Math.PI) / sides;
-  const points = Array.from({ length: sides }, (_, i) => {
-    const angle = i * angleStep - Math.PI / 2;
-    const x = cx + radius * Math.cos(angle);
-    const y = cy + radius * Math.sin(angle);
-    return [x, y];
-  });
-  return d3.line()(points.concat([points[0]]));
-}
-
 function getPolygonSides(filterCount) {
   if (filterCount <= 3) return 3;
   if (filterCount <= 5) return 5;
   return filterCount % 2 === 0 ? filterCount + 1 : filterCount;
-}
-
-// Utility functions (flattenSections, etc.) should still be defined outside this file or imported
-
-function wrapTextToLines(text, maxWidth, fontSize = 14, fontFamily = "sans-serif") {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  ctx.font = `${fontSize}px ${fontFamily}`;
-
-  const words = text.split(" ");
-  const lines = [];
-  let line = "";
-
-  for (let i = 0; i < words.length; i++) {
-    const testLine = line ? `${line} ${words[i]}` : words[i];
-    const { width } = ctx.measureText(testLine);
-    if (width > maxWidth) {
-      if (line) lines.push(line);
-      line = words[i]; // start new line
-    } else {
-      line = testLine;
-    }
-  }
-
-  if (line) lines.push(line);
-  return lines;
 }
 
 function hexToRgbaStr(hex, alpha = 1) {
@@ -283,20 +245,10 @@ function getValueLabelsFromSequence(sequence) {
 }
 
 
-function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder, sectionData, onInsightClick, onLayoutReady, selectedInsight }) {
+function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder, sectionData, onInsightClick, selectedInsight }) {
 
   const [valueSequences, setValueSequences] = useState({});
   const [polygonSections, setPolygonSections] = useState(null);
-
-  // const filterColors = [
-  //   "rgba(140, 0, 0, 1)",    
-  //   "rgba(140, 135, 0, 1)",    
-  //   "rgba(0, 140, 9, 1)",    
-  //   "rgba(0, 140, 128, 1)", 
-  //   "rgba(0, 9, 140, 1)",   
-  //   "rgba(140, 0, 121, 1)",
-  //   "rgba(140, 0, 0, 1)"  
-  // ];
 
   // Darken a hex color toward black by factor (0..1)
   function darkenHex(hex, factor = 0.6) {
@@ -327,11 +279,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   const angleStep = (2 * Math.PI) / sides;
 
   const fontSize = size * 0.025;
-  const labelOffset = size * 0.16;
   const _baseRadius = size * 0.004;
-  // const _barWidth = size * 0.015;
-  // const _barGap = size * 0.004;
-  // const _maxBarHeight = size * 0.1;
 
   const svgRef = useRef(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -387,137 +335,15 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
   useEffect(() => {
     if (!sectionData) return;
-
     const result = aggregateInsightCountsByLevel(sectionData);
-    console.log("🧮 Insight counts by level and index-in-level:", result);
+    console.log("Insight counts by level and index-in-level:", result);
   }, [sectionData]);
-
-  let lastFilteredIndex = -1;
-
-  for (let i = 0; i < filterOrder.length; i++) {
-    if (filterOrder[i]) {
-      lastFilteredIndex = i;
-    }
-  }
-
-  if (lastFilteredIndex <= 0) {
-    // Do not draw arc
-  }
-
-  const arcCenter = [centerX, centerY];
-  const arcRadius = size / 2 - 5;
-
-  function angleBetween(center, point) {
-    const dx = point[0] - center[0];
-    const dy = point[1] - center[1];
-    return Math.atan2(dy, dx);
-  }
-
-  function averageAngles(a, b) {
-    const x = Math.cos(a) + Math.cos(b);
-    const y = Math.sin(a) + Math.sin(b);
-    return Math.atan2(y, x);
-  }
-
-  // First edge (index 0)
-  const angle0 = angleBetween(arcCenter, points[0]);
-  const angle1 = angleBetween(arcCenter, points[1]);
-  const startAngle = averageAngles(angle0, angle1);
-
-  // Last filtered edge:
-  const angleLastA = angleBetween(arcCenter, points[lastFilteredIndex]);
-  const angleLastB = angleBetween(arcCenter, points[(lastFilteredIndex + 1) % sides]);
-  const endAngle = averageAngles(angleLastA, angleLastB);
-
-  // Project both onto circle:
-  const start = [
-    centerX + arcRadius * Math.cos(startAngle),
-    centerY + arcRadius * Math.sin(startAngle)
-  ];
-  const end = [
-    centerX + arcRadius * Math.cos(endAngle),
-    centerY + arcRadius * Math.sin(endAngle)
-  ];
-
-  function normalizeAngle(angle) {
-    return (angle + 2 * Math.PI) % (2 * Math.PI);
-  }
-
-  const normStart = normalizeAngle(startAngle);
-  const normEnd = normalizeAngle(endAngle);
-
-  let angleDiff = normEnd - normStart;
-  if (angleDiff < 0) angleDiff += 2 * Math.PI;
-
-  const largeArcFlag = angleDiff < (Math.PI) ? 0 : 1;
-  const sweepFlag = 1;
-
-  const arcPath = `
-    M ${start[0]} ${start[1]}
-    A ${arcRadius} ${arcRadius} 0 ${largeArcFlag} ${sweepFlag} ${end[0]} ${end[1]}
-  `;
-
-  useEffect(() => {
-    if (!polygonSections || !svgRef.current || !onLayoutReady) return;
-
-    const svgRect = svgRef.current.getBoundingClientRect();
-    const layout = [];
-
-    flattenSections(polygonSections.segments).forEach(seg => {
-      if (!seg._isLeaf || !Array.isArray(seg.insights)) return;
-
-      const points = generateInsightPoints(seg.vertices, seg.insights.length);
-      seg.insights.forEach((insight, i) => {
-        const [x, y] = points[i];
-        layout.push({
-          ...insight,
-          x: x + svgRect.left,
-          y: y + svgRect.top
-        });
-      });
-    });
-
-    onLayoutReady(layout);
-  }, [polygonSections, onLayoutReady]);
-
 
   const leafSegments = polygonSections?.segments
     ? flattenSections(polygonSections.segments).filter(seg => seg._isLeaf)
     : [];
 
   const maxInsightCount = Math.max(...leafSegments.map(seg => seg.insights?.length || 0), 1);
-
-  const containerRef = useRef(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setContainerWidth(rect.width);
-    }
-  }, [collection]);  // 🔥 recompute when collection changes
-
-  // Compute max count per edge for normalization
-  const maxCountsPerEdge = Object.fromEntries(
-    Object.entries(insightCounts).map(([levelStr, indexCounts]) => {
-      const maxCount = Math.max(...Object.values(indexCounts), 1);
-      return [levelStr, maxCount];
-    })
-  );
-
-  // Step 1. Build color map from collection.measure_set
-  // const colorPalette = [
-  //   "#ffcf33ff",  // yellow
-  //   "#f781bf",  // pink
-  //   "#66c2a5",   // teal
-  //   "#e41a1c",  // red
-  //   "#377eb8",  // blue
-  //   "#4daf4a",  // green
-  //   "#984ea3",  // purple 
-  //   "#ff7f00",  // orange
-  //   "#a65628",  // brown
-  //   "#999999",  // grey
-  // ];
 
   const colorPalette = d3.schemeSet2;
 
@@ -528,57 +354,6 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   uniqueMeasureKeys.forEach((key, i) => {
     colorMap[key] = colorPalette[i % colorPalette.length];
   });
-
-
-  // const yAxisRefs = useRef([]);
-  // const xAxisRefs = useRef([]);
-  // useEffect(() => {
-  //   points.forEach(([x1, y1], i) => {
-  //     const [x2, y2] = points[(i + 1) % sides];
-  //     const dx = x2 - x1;
-  //     const dy = y2 - y1;
-  //     const length = Math.sqrt(dx * dx + dy * dy);
-
-  //     const chartWidth = length * 0.9;
-  //     const chartHeight = length * 0.2;
-
-  //     const counts = insightCounts[i] || {};
-  //     if (!Object.values(counts).some(v => v > 0)) return;
-
-  //     const data = Object.entries(counts).map(([level, count]) => ({
-  //       name: `L${level}`,
-  //       value: count,
-  //     }));
-
-  //     const maxCount = d3.max(data, d => d.value) || 1;
-
-  //     const yScale = d3.scaleLinear()
-  //       .domain([0, maxCount])
-  //       .range([chartHeight, 0]);
-
-  //     const xScale = d3.scaleBand()
-  //       .domain(data.map(d => d.name))
-  //       .range([0, chartWidth])
-  //       .padding(0.1);
-
-  //     const yAxis = d3.axisRight(yScale)
-  //       .ticks(4)
-  //       .tickSize(3)
-  //       .tickPadding(2);
-
-  //     const xAxis = d3.axisBottom(xScale)
-  //       .tickSize(3)
-  //       .tickPadding(4);
-
-  //     if (yAxisRefs.current[i]) {
-  //       d3.select(yAxisRefs.current[i]).call(yAxis);
-  //     }
-
-  //     if (xAxisRefs.current[i]) {
-  //       d3.select(xAxisRefs.current[i]).call(xAxis);
-  //     }
-  //   });
-  // }, [points, insightCounts]);
 
     const insightKey = (i) =>
     JSON.stringify({
@@ -611,26 +386,6 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           </marker>
         </defs>
 
-        {/* Draw circular arrow */}
-        {/* {lastFilteredIndex > 0 && (
-          <>
-            <path
-              id="arcPathId"
-              d={arcPath}
-              fill="none"
-              stroke="lightgrey"
-              strokeWidth="2"
-              markerEnd="url(#arrowhead)"
-              opacity={0.5}
-            />
-            <text fontSize="12" fill="grey" textAnchor="middle" opacity={0.5}>
-              <textPath href="#arcPathId" startOffset="50%">
-                Explore Sequence. Click and Drag to Reorder.
-              </textPath>
-            </text>
-          </>
-        )} */}
-
         {/* Leaf polygons colored by insight count gradient */}
         {leafSegments.map(seg => {
           const count = seg.insights?.length || 0;
@@ -644,7 +399,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
               fill={fillColor}
               stroke="#aaa"
               strokeWidth={0.5}
-              opacity={0.4}
+              opacity={0.25}
             />
           );
         })}
@@ -779,10 +534,6 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           const barWidth = chartWidth / (1.5 * data.length);
           const barPadding = (chartWidth - barWidth * data.length) / (data.length - 1);
 
-          // const toCenterX = centerX - mx;
-          // const toCenterY = centerY - my;
-          // const inward = nx * toCenterX + ny * toCenterY < 0;
-
           let flip = 1
           let flipLabel = 1;
           let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
@@ -866,20 +617,6 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
                   </g>
                 );
               })}
-
-              {/* D3 Axis group (right side) */}
-              {/* <g>
-                <g
-                  className="y-axis"
-                  ref={el => (yAxisRefs.current[i] = el)}
-                  transform={`translate(${chartWidth}, 0)`}
-                />
-                <g
-                  className="x-axis"
-                  ref={el => (xAxisRefs.current[i] = el)}
-                  transform={`translate(0, ${chartHeight})`}
-                />
-              </g> */}
             </g>
           );
         })}
@@ -950,21 +687,10 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         );
       })}
 
-      {/* circle the selectedInsight */}
-      
 
       {/* Embedded Color Legend in SVG */}
       {colorMap && (
         <g transform={`translate(${size * 0.02}, ${size * 0.02})`}>
-          <rect
-            x={0}
-            y={0}
-            width={size * 0.25}
-            height={size * 0.015 + size * 0.05 * Object.keys(colorMap).length}
-            fill="white"
-            // stroke="#ccc"
-            // rx={4}
-          />
           <text
             x={size * 0.01}
             y={size * 0.025}
@@ -975,9 +701,22 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
             Measure Legend:
           </text>
           {Object.entries(colorMap).map(([measureKey, color], i) => (
-            <g key={measureKey} transform={`translate(${size * 0.02}, ${size * 0.015 + (i + 1) * size * 0.04})`}>
-              <circle r={size * 0.006} fill={color} stroke="#666" strokeWidth={0.5} />
-              <text x={size * 0.025} y={size * 0.005} fontSize={size * 0.018} fill="#333">
+            <g 
+              key={measureKey} 
+              transform={`translate(${size * 0.02}, ${size * 0.015 + (i + 1) * size * 0.03})`}
+            >
+              <circle 
+                r={size * 0.005} 
+                fill={color} 
+                stroke="#666" 
+                strokeWidth={0.5}
+             />
+              <text 
+                x={size * 0.025} 
+                y={size * 0.005} 
+                fontSize={size * 0.015} 
+                fill="#333"
+              >
                 {measureKey.replace(/\|/g, ", ")}
               </text>
             </g>
