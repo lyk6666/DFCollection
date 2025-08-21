@@ -333,47 +333,47 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
 
     const SPACING = 3; // space between color legend and axis
 
-// === 🎨 Color Legend (Type Count) ===
-const typeLegendY = height * 0.85; // a bit lower than filter count legend
-const typeLegendSteps = uniqueTypeCounts.length;
-const typeStepWidth = legendWidth / typeLegendSteps;
+    // === 🎨 Color Legend (Type Count) ===
+    const typeLegendY = height * 0.85; // a bit lower than filter count legend
+    const typeLegendSteps = uniqueTypeCounts.length;
+    const typeStepWidth = legendWidth / typeLegendSteps;
 
-const typeLegendGroup = svg.append("g")
-  .attr("transform", `translate(${offsetX + legendX}, ${offsetY + typeLegendY})`);
+    const typeLegendGroup = svg.append("g")
+      .attr("transform", `translate(${offsetX + legendX}, ${offsetY + typeLegendY})`);
 
-uniqueTypeCounts.forEach((val, i) => {
-  typeLegendGroup.append("rect")
-    .attr("x", i * typeStepWidth)
-    .attr("y", 0)
-    .attr("width", typeStepWidth)
-    .attr("height", legendHeight)
-    .attr("fill", typeColorScale(val))
-    .attr("opacity", 0.95);
-});
+    uniqueTypeCounts.forEach((val, i) => {
+      typeLegendGroup.append("rect")
+        .attr("x", i * typeStepWidth)
+        .attr("y", 0)
+        .attr("width", typeStepWidth)
+        .attr("height", legendHeight)
+        .attr("fill", typeColorScale(val))
+        .attr("opacity", 0.95);
+    });
 
-// X-axis for type legend
-const typeScale = d3.scaleLinear()
-  .domain(d3.extent(uniqueTypeCounts))
-  .range([typeStepWidth / 2, legendWidth - typeStepWidth / 2]);
+    // X-axis for type legend
+    const typeScale = d3.scaleLinear()
+      .domain(d3.extent(uniqueTypeCounts))
+      .range([typeStepWidth / 2, legendWidth - typeStepWidth / 2]);
 
-const typeAxis = d3.axisBottom(typeScale)
-  .tickValues(uniqueTypeCounts)
-  .tickFormat(d => `${d}`);
+    const typeAxis = d3.axisBottom(typeScale)
+      .tickValues(uniqueTypeCounts)
+      .tickFormat(d => `${d}`);
 
-const typeAxisGroup = typeLegendGroup.append("g")
-  .attr("transform", `translate(0, ${legendHeight + SPACING})`)
-  .call(typeAxis);
+    const typeAxisGroup = typeLegendGroup.append("g")
+      .attr("transform", `translate(0, ${legendHeight + SPACING})`)
+      .call(typeAxis);
 
-typeAxisGroup.selectAll("path, line").attr("stroke", "#666");
-typeAxisGroup.selectAll("text").style("fill", "#333").style("font-size", "8px");
+    typeAxisGroup.selectAll("path, line").attr("stroke", "#666");
+    typeAxisGroup.selectAll("text").style("fill", "#333").style("font-size", "8px");
 
-// Label
-typeLegendGroup.append("text")
-  .attr("x", legendWidth / 2)
-  .attr("y", 3 * legendHeight)
-  .attr("text-anchor", "middle")
-  .attr("font-size", "8px")
-  .text("Type Count");
+    // Label
+    typeLegendGroup.append("text")
+      .attr("x", legendWidth / 2)
+      .attr("y", -0.5 * legendHeight)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "8px")
+      .text("Type Count");
 
 
     // 🔽 Filter Count Color Legend (Reds)
@@ -411,7 +411,7 @@ typeLegendGroup.append("text")
     // Label
     legendGroup.append("text")
       .attr("x", legendWidth / 2)
-      .attr("y", 3 * legendHeight)
+      .attr("y", -0.15 * legendHeight)
       .attr("text-anchor", "middle")
       .attr("font-size", "8px")
       .text("Filter Count");
