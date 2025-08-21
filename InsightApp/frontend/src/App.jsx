@@ -227,7 +227,7 @@ function App() {
         background: '#5e5e5eff', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '5vw' // horizontal padding
       }}>
         <div style={{ fontWeight: 800, paddingLeft: '5vw', fontSize: 30 }}>DFCollection</div>
-        <UploadAndSelect apiBase="http://127.0.0.1:5000" />
+        <UploadAndSelect width="100%" apiBase="http://127.0.0.1:5000" />
       </div>
 
       {/* Collection-Summary View */}
@@ -271,7 +271,6 @@ function App() {
               setFilterOrder={setFilterOrder}
               sectionData={sectionData}
               onInsightClick={setClickedInsight}
-              onLayoutReady={() => {}}
               selectedInsight={clickedInsight}
             />
           )}
