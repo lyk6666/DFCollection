@@ -59,6 +59,78 @@ _state = {
     "cols": 0,
 }
 
+# ========= Aggregation helpers/config =========
+# Canonical names to use in pandas and downstream:
+# - We accept "SUM, MAX, MIN, AVG, COUNT" from frontend, case-insensitive
+# - Map to pandas-friendly names: sum, max, min, mean, count
+_AGG_CANON = {
+    "SUM": "sum",
+    "MAX": "max",
+    "MIN": "min",
+    "AVG": "mean",
+    "MEAN": "mean",
+    "COUNT": "count",
+}
+_ALLOWED_FRONT_AGGS = set(_AGG_CANON.keys())  # what the UI is allowed to send
+
+def _canon_agg(agg: str) -> str:
+    key = (agg or "").strip().upper()
+    if key not in _AGG_CANON:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported aggregation '{agg}'. Allowed: {sorted(_ALLOWED_FRONT_AGGS)}"
+        )
+    return _AGG_CANON[key]
+
+def _normalize_measure_aggs(raw: Any, numerical_cols: List[str]) -> Dict[str, str]:
+    """
+    Accepts multiple shapes and returns a mapping: {col_name: canonical_agg}
+    Supported shapes:
+      - dict: {"sales":"SUM", "profit":"AVG"}
+      - list of pairs: [["sales","SUM"], ["profit","AVG"]]
+      - list of objects: [{"column":"sales","agg":"SUM"}, ...]
+      - None -> default SUM for all numerical_cols
+    Non-numerical columns are ignored; invalid aggs raise HTTPException.
+    """
+    # Default: SUM for every numerical column (if nothing provided)
+    if raw is None:
+        return {col: _AGG_CANON["SUM"] for col in numerical_cols}
+
+    out: Dict[str, str] = {}
+    # Dict form
+    if isinstance(raw, dict):
+        for col, agg in raw.items():
+            if col in numerical_cols:
+                out[col] = _canon_agg(str(agg))
+        # fill missing numerical with SUM (optional; keep strict? choose to default)
+        for col in numerical_cols:
+            out.setdefault(col, _AGG_CANON["SUM"])
+        return out
+
+    # List form
+    if isinstance(raw, list):
+        for entry in raw:
+            if isinstance(entry, (list, tuple)) and len(entry) == 2:
+                col, agg = entry
+                if col in numerical_cols:
+                    out[col] = _canon_agg(str(agg))
+            elif isinstance(entry, dict) and "column" in entry and "agg" in entry:
+                col = entry["column"]
+                agg = entry["agg"]
+                if col in numerical_cols:
+                    out[col] = _canon_agg(str(agg))
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid measure_aggs list entry. Expect [col, agg] or {column, agg}."
+                )
+        # default missing to SUM
+        for col in numerical_cols:
+            out.setdefault(col, _AGG_CANON["SUM"])
+        return out
+
+    raise HTTPException(status_code=400, detail="Invalid measure_aggs payload type.")
+
 # ======== Helpers ========
 def _reset_runtime_cache() -> None:
     global _cached_insights, _cached_collections, _cached_intra_similarity, _cached_inter_similarity
@@ -68,10 +140,26 @@ def _reset_runtime_cache() -> None:
     _cached_inter_similarity = None
 
 def _require_ready_dataset() -> None:
-    if config.DATAFRAME is None:
+    """
+    Ensure a dataset is uploaded and column selections (including numerical) are set.
+    Uses getattr for backward compatibility if config doesn't yet define MEASURE_AGGS.
+    """
+    if getattr(config, "DATAFRAME", None) is None:
         raise HTTPException(status_code=409, detail="No dataset uploaded yet. Upload a CSV first.")
-    if config.CATEGORICAL_COLUMNS is None:
-        raise HTTPException(status_code=409, detail="Columns not set. Submit categorical & ordinal selections.")
+
+    categorical_set = getattr(config, "CATEGORICAL_COLUMNS", None)
+    ordinal_set = getattr(config, "ORDINAL_COLUMNS", None)
+    numerical_set = getattr(config, "NUMERICAL_COLUMNS", None)
+
+    if categorical_set is None or ordinal_set is None or numerical_set is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Columns not set. Submit categorical, ordinal & numerical selections."
+        )
+    # measure_aggs is optional for strict backward compatibility; when present, it must be dict-like
+    # If you'd like to make it required, uncomment the next lines:
+    # if getattr(config, "MEASURE_AGGS", None) is None:
+    #     raise HTTPException(status_code=409, detail="Aggregation methods not set. Submit measure_aggs.")
 
 def _convert_numpy(obj):
     if isinstance(obj, dict):
@@ -105,17 +193,32 @@ def _df_preview(df: pd.DataFrame, n: int = 3):
     return df.head(n).to_dict(orient="records")
 
 # Try to call generate_insights with df & selections if supported
-def _run_generate_insights(df: pd.DataFrame, categorical: List[str], ordinal: List[str]):
+def _run_generate_insights(
+    df: pd.DataFrame,
+    categorical: List[str],
+    ordinal: List[str],
+    numerical: List[str],
+    measure_aggs: Dict[str, str],
+):
     sig = inspect.signature(generate_insights)
-    kwargs = {}
+    kwargs: Dict[str, Any] = {}
     if "df" in sig.parameters:
         kwargs["df"] = df
     if "categorical" in sig.parameters:
         kwargs["categorical"] = categorical
     if "ordinal" in sig.parameters:
         kwargs["ordinal"] = ordinal
+    if "numerical" in sig.parameters:
+        kwargs["numerical"] = numerical
+    # New: pass aggregation mapping if supported under either name
+    if "measure_aggs" in sig.parameters:
+        kwargs["measure_aggs"] = measure_aggs
+    elif "numerical_aggs" in sig.parameters:
+        kwargs["numerical_aggs"] = measure_aggs
+
     if kwargs:
         return generate_insights(**kwargs)  # type: ignore[arg-type]
+
     # Fallback to old behavior (maybe generate_insights imports from config internally)
     return generate_insights()
 
@@ -130,13 +233,18 @@ def _process_pipeline():
         _state.update({"stage": "processing", "message": "Processing uploaded dataset...", "error": None})
 
         df = config.DATAFRAME
-        categorical = config.CATEGORICAL_COLUMNS or []
-        ordinal = config.ORDINAL_COLUMNS or []
+        categorical = getattr(config, "CATEGORICAL_COLUMNS", []) or []
+        ordinal = getattr(config, "ORDINAL_COLUMNS", []) or []
+        numerical = getattr(config, "NUMERICAL_COLUMNS", []) or []
         if df is None:
             raise RuntimeError("DATAFRAME is None during processing")
 
+        # Get measure_aggs from config if available; default to SUM for selected numeric cols
+        cfg_aggs = getattr(config, "MEASURE_AGGS", None)
+        measure_aggs = _normalize_measure_aggs(cfg_aggs, numerical)
+
         # 1) insights
-        insights = _run_generate_insights(df, categorical, ordinal)
+        insights = _run_generate_insights(df, categorical, ordinal, numerical, measure_aggs)
         # 2) collections
         collections = group_insights(insights)
 
@@ -173,6 +281,14 @@ def _process_pipeline():
 class ColumnSelections(BaseModel):
     categorical: List[str]
     ordinal: List[str]
+    numerical: List[str]
+    # Flexible field to carry aggregation methods per measure.
+    # Accepts any of:
+    #  - dict {column: agg}
+    #  - list of [column, agg]
+    #  - list of {"column": col, "agg": agg}
+    #  - None
+    measure_aggs: Optional[Any] = None
 
 class SectionRequest(BaseModel):
     collection_id: int  # or str, depending on your id type
@@ -218,12 +334,56 @@ async def upload_csv(file: UploadFile = File(...)):
 
 @app.post("/set-columns")
 async def set_columns(sel: ColumnSelections, background: BackgroundTasks):
-    if config.DATAFRAME is None:
+    if getattr(config, "DATAFRAME", None) is None:
         raise HTTPException(status_code=409, detail="No CSV uploaded yet.")
 
-    # Save the selections
-    config.set_column_selections(sel.categorical, sel.ordinal)
-    logger.info("Received categorical=%s ordinal=%s", sel.categorical, sel.ordinal)
+    # Normalize aggregation mapping relative to the selected numerical columns
+    numerical_cols = sel.numerical or []
+    norm_aggs = _normalize_measure_aggs(sel.measure_aggs, numerical_cols)
+
+    # Save the selections (introspect for backward compatibility)
+    set_cols_fn = getattr(config, "set_column_selections", None)
+    if set_cols_fn is None or not callable(set_cols_fn):
+        raise HTTPException(status_code=500, detail="config.set_column_selections() not found.")
+
+    sig = inspect.signature(set_cols_fn)
+    kwargs: Dict[str, Any] = {}
+    if "categorical" in sig.parameters:
+        kwargs["categorical"] = sel.categorical
+    if "ordinal" in sig.parameters:
+        kwargs["ordinal"] = sel.ordinal
+    if "numerical" in sig.parameters:
+        kwargs["numerical"] = sel.numerical
+    # Pass measure_aggs under whatever name the config expects
+    if "measure_aggs" in sig.parameters:
+        kwargs["measure_aggs"] = norm_aggs
+    elif "numerical_aggs" in sig.parameters:
+        kwargs["numerical_aggs"] = norm_aggs
+
+    # If the config fn doesn't support measure aggs, try to set an attribute
+    # (keeps old configs working)
+    try:
+        if kwargs:
+            set_cols_fn(**kwargs)
+        else:
+            # Fall back to old (categorical, ordinal)
+            set_cols_fn(sel.categorical, sel.ordinal)  # type: ignore[misc]
+    except TypeError:
+        # As an absolute fallback, try (categorical, ordinal, numerical)
+        set_cols_fn(sel.categorical, sel.ordinal, sel.numerical)  # type: ignore[misc]
+
+    # If config has a MEASURE_AGGS attribute, store the normalized map
+    try:
+        if hasattr(config, "MEASURE_AGGS"):
+            setattr(config, "MEASURE_AGGS", norm_aggs)
+    except Exception:
+        # Non-fatal; config may be immutable
+        pass
+
+    logger.info(
+        "Received categorical=%s ordinal=%s numerical=%s measure_aggs=%s",
+        sel.categorical, sel.ordinal, sel.numerical, norm_aggs
+    )
 
     # Kick off pipeline in the background to avoid blocking the request
     _state.update({"stage": "processing", "message": "Starting processing...", "error": None})
