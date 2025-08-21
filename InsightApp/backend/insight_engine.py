@@ -1,5 +1,5 @@
 import pandas as pd
-from itertools import product
+from itertools import product, combinations
 
 from config import (
     MINI_DATASET,
@@ -9,24 +9,22 @@ from config import (
 )
 
 import config
-
 import pandas as pd
 
 def generate_insights():
     df = config.DATAFRAME
     cats = config.CATEGORICAL_COLUMNS
     ords = config.ORDINAL_COLUMNS
+    nums = config.NUMERICAL_COLUMNS
+    agg_map = getattr(config, "MEASURE_AGGS", {}) or {}
 
     categorical_columns = cats
-    if categorical_columns is None:
-        raise ValueError("CATEGORICAL_COLUMNS is not set. Please upload a dataset first.")
     ordinal_columns = ords
+    numerical_columns = nums
 
-    # Use the path from config
-    if df is None:
-        raise ValueError("DATAFRAME is not set. Please upload a dataset first.")
-
-    numerical_columns = [col for col in df.columns if col not in categorical_columns]
+    total_rows = len(df) if df is not None else 0
+    if total_rows == 0:
+        return []
 
     # Create dataset with only categorical columns
     df_cat = df[categorical_columns]
@@ -37,14 +35,11 @@ def generate_insights():
         for col in df_cat.columns
     }
 
-    # Get all combinations using itertools.product
+    # Get all combinations using itertools.product; keep only those with at least one wildcard
     filters = [
         values for values in product(*[possible_values[col] for col in df_cat.columns])
         if any(val == '*' for val in values)
     ]
-
-    # for filter in filters:
-    #     print(filter)
 
     # Convert each filter to a dictionary for easier use
     filter_dicts = [
@@ -60,7 +55,6 @@ def generate_insights():
         return df[mask]
 
     filtered_datasets = []
-
     for filt in filter_dicts:
         filt_df = apply_filter(df, filt)
         if len(filt_df) < MINI_DATASET:
@@ -72,32 +66,63 @@ def generate_insights():
 
     integrated_subspaces = []
 
-    def analyze_subspace(filtered_df, filt, breakdown, measure, agg_method='sum'):
-        # Group by breakdown and aggregate the measure
+    def analyze_subspace(filtered_df, filt, breakdown, measure):
+        """
+        measure can be:
+        - a single column name (str), or
+        - an iterable of column names (list/tuple/set) of length 2
+
+        We aggregate each measure column by its configured aggregation method in `agg_map`
+        and store a canonical representation:
+        - single: keep as str
+        - pair: store as a sorted tuple (unordered)
+
+        We also store the subspace size to compute impact as COUNT(subspace)/COUNT(*).
+        """
+        # normalize to list of columns to aggregate
+        if isinstance(measure, (list, tuple, set)):
+            cols = list(measure)
+        else:
+            cols = [measure]
+
+        # build per-column aggregation mapping; default to 'sum' if missing
+        col_aggs = {col: agg_map.get(col, 'sum') for col in cols}
+
         grouped = (
             filtered_df
-            .groupby(breakdown, as_index=False)[measure]
-            .agg(agg_method)
+            .groupby(breakdown, as_index=False)
+            .agg(col_aggs)
         )
 
-        # Save only if meets minimum row requirement
+        # canonicalize the 'measure' field: tuple for pairs, str for singles
+        canonical_measure = cols[0] if len(cols) == 1 else tuple(sorted(cols))
+
         result = {
             'filter': filt,
-            'original_sub_df': filtered_df,
             'breakdown': breakdown,
-            'measure': measure,
-            'modified_sub_df': grouped
+            'measure': canonical_measure,
+            'modified_sub_df': grouped,
+            # impact is subspace-based; carry subspace count to avoid recomputing
+            'subspace_count': int(len(filtered_df)),
         }
         integrated_subspaces.append(result)
 
     for filt, filt_df in filtered_datasets:
         breakdown_candidates = [col for col, val in filt.items() if val == '*']
+
+        # prepare all single measures and all unordered pairs
+        single_measures = [(m,) for m in numerical_columns]
+        pair_measures = list(combinations(sorted(numerical_columns), 2))
+
         for breakdown in breakdown_candidates:
-            for measure in numerical_columns:
-                analyze_subspace(filt_df, filt, breakdown, measure)
+            # singles
+            for (m,) in single_measures:
+                analyze_subspace(filt_df, filt, breakdown, m)
+            # unordered pairs (length 2)
+            for m_pair in pair_measures:
+                analyze_subspace(filt_df, filt, breakdown, list(m_pair))
 
-
-    # {Subspace, original_filtered_dataset, breakdown, measure, modified_filtered_dataset}
+    # {Subspace, breakdown, measure, modified_filtered_dataset, subspace_count}
     # -------------------------------------------------------------------------------------------------------------------------------
 
     import numpy as np
@@ -106,28 +131,19 @@ def generate_insights():
     def test_dominance(values, beta=0.9):
         values = np.array(values)
         if len(values) < MINI_DATASET:
-            # Not enough values to evaluate
             return 0.0
 
-        # Step 1: Sort in descending order
         sorted_values = np.sort(values)[::-1]
-
-        # Step 2: Exclude the maximum value and fit power-law
         y = sorted_values[1:]
-        ranks = np.arange(2, len(sorted_values)+1)  # ranks start from 2
+        ranks = np.arange(2, len(sorted_values)+1)
 
-        # Log-transform for linear regression: log(y) = log(alpha) - beta*log(rank)
         if len(y) == 0 or np.any(y <= 0) or np.isnan(y).any():
             return 0.0
         log_y = np.log(y)
-
         log_rank = np.log(ranks)
         alpha_hat = np.exp(np.mean(log_y + beta*log_rank))
 
-        # Predict values from model ---------- beta = 1.2
         y_hat = alpha_hat * ranks.astype(float)**(-beta)
-
-        # Step 3: Residuals and fit Gaussian
         residuals = y - y_hat
         if len(residuals) < 2:
             return 0.0
@@ -136,88 +152,30 @@ def generate_insights():
         if std_resid == 0 or np.isnan(std_resid):
             return 0.0
         
-        # Step 4: Compute residual for top value
         x_max = sorted_values[0]
         x1_hat = alpha_hat * 1**(-beta)
         R = x_max - x1_hat
 
-        # Step 5: Compute p-value for R under residuals' Gaussian model
-        # (Probability of seeing such a large residual under null)
         p_value = 1 - norm.cdf(R, loc=mu_resid, scale=std_resid)
         significance = 1 - p_value
-
         return significance
-
-    # def test_outstanding_one(values, beta=0.8):
-    #     values = np.array(values)
-    #     if len(values) < MINI_DATASET:
-    #         # Not enough values to evaluate
-    #         return 0.0
-
-    #     # Step 1: Sort in descending order
-    #     sorted_values = np.sort(values)[::-1]
-
-    #     # Step 2: Exclude the maximum value and fit power-law
-    #     y = sorted_values[1:]
-    #     ranks = np.arange(2, len(sorted_values)+1)  # ranks start from 2
-
-    #     # Log-transform for linear regression: log(y) = log(alpha) - beta*log(rank)
-    #     if len(y) == 0 or np.any(y <= 0) or np.isnan(y).any():
-    #         return 0.0
-    #     log_y = np.log(y)
-
-    #     log_rank = np.log(ranks)
-    #     alpha_hat = np.exp(np.mean(log_y + beta*log_rank))
-
-    #     # Predict values from model
-    #     y_hat = alpha_hat * ranks**(-beta)
-
-    #     # Step 3: Residuals and fit Gaussian
-    #     residuals = y - y_hat
-    #     if len(residuals) < 2:
-    #         return 0.0
-    #     mu_resid = np.nanmean(residuals)
-    #     std_resid = np.nanstd(residuals, ddof=1)
-    #     if std_resid == 0 or np.isnan(std_resid):
-    #         return 0.0
-        
-    #     # Step 4: Compute residual for top value
-    #     x_max = sorted_values[0]
-    #     x1_hat = alpha_hat * 1**(-beta)
-    #     R = x_max - x1_hat
-
-    #     # Step 5: Compute p-value for R under residuals' Gaussian model
-    #     # (Probability of seeing such a large residual under null)
-    #     p_value = 1 - norm.cdf(R, loc=mu_resid, scale=std_resid)
-    #     significance = 1 - p_value
-
-    #     return significance
 
     def test_outstanding_twin(values, beta=0.9):
         values = np.array(values)
         if len(values) < MINI_DATASET + 1:
-            # Not enough values to evaluate
             return 0.0
 
-        # Step 1: Sort in descending order
         sorted_values = np.sort(values)[::-1]
-
-        # Step 2: Exclude the maximum value and fit power-law
         y = sorted_values[2:]
-        ranks = np.arange(2, len(sorted_values))  # ranks start from 3
+        ranks = np.arange(2, len(sorted_values))
 
-        # Log-transform for linear regression: log(y) = log(alpha) - beta*log(rank)
         if len(y) == 0 or np.any(y <= 0) or np.isnan(y).any():
             return 0.0
         log_y = np.log(y)
-
         log_rank = np.log(ranks)
         alpha_hat = np.exp(np.mean(log_y + beta*log_rank))
 
-        # Predict values from model
         y_hat = alpha_hat * ranks**(-beta)
-
-        # Step 3: Residuals and fit Gaussian
         residuals = y - y_hat
         if len(residuals) < 2:
             return 0.0
@@ -226,253 +184,148 @@ def generate_insights():
         if std_resid == 0 or np.isnan(std_resid):
             return 0.0
         
-        # Step 4: Compute residual for top value
         x_max = sorted_values[0] + sorted_values[1]
         x1_hat = alpha_hat * (1**(-beta))
         R = x_max - x1_hat
 
-        # Step 5: Compute p-value for R under residuals' Gaussian model
-        # (Probability of seeing such a large residual under null)
         p_value = 1 - norm.cdf(R, loc=mu_resid, scale=std_resid)
         significance = 1 - p_value
-
         return significance
 
     def test_evenness(values, eps=1e-12):
         x = np.asarray(values, dtype=float)
-
-        # keep only finite values
         x = x[np.isfinite(x)]
         n = x.size
-
         if n < max(2, MINI_DATASET):
             return 0.0
 
         mu = np.nanmean(x)
         if not np.isfinite(mu) or abs(mu) < eps:
-            # CV undefined/unstable when mean ~ 0
             return 0.0
 
         s = np.nanstd(x, ddof=0)
         if not np.isfinite(s):
             return 0.0
 
-        cv = s / abs(mu)   # Coefficient of Variation (nonnegative)
-        score = 1.0 - cv   # higher = more even
-        # Keep score in [0, 1]
+        cv = s / abs(mu)
+        score = 1.0 - cv
         return float(np.clip(score, 0.0, 1.0))
 
-    def test_change_point(x, y, window_size=3, require_slope=False):
-        """
-        Significance of mean-value change point per spec:
-
-        - Left window:  n points immediately before k  -> {X_left, Y_left}
-        - Right window: n points starting at k         -> {X_right, Y_right}
-        - Combined window around k:                    -> {X, Y} of size 2n
-
-        Mean-change test:
-            Ybar_left  = mean(Y_left)
-            Ybar_right = mean(Y_right)
-            sigma_Y    = sqrt( E[Y^2] - (E[Y])^2 )   # population std over the 2n points
-            sigma_mu_Y = sigma_Y / sqrt(n)
-            kmean      = |Ybar_left - Ybar_right| / sigma_mu_Y
-            p_mean     = 2 * (1 - Phi(kmean))        # two-sided
-            sig_mean   = 1 - p_mean
-
-        Optionally, also test for slope change using local linear regressions and
-        combine with AND (min) if require_slope=True. Slope test is two-sided.
-        """
-        x = np.asarray(x)
-        y = np.asarray(y)
-        N = len(y)
-        n = int(window_size)
-
-        if N < 2 * n + 1 or n < 1:
+    def test_change_point(x, y, window_size=3):
+        x = np.asarray(x, float)
+        y = np.asarray(y, float)
+        N, n = len(y), int(window_size)
+        if N < 2*n + 1 or n < 1:
             return 0.0, None, {}
 
         best_sig = 0.0
         best_k = None
         details = {}
 
-        # k indexes the boundary between left and right windows:
-        # left:  [k-n, ..., k-1]  (n points)
-        # right: [k,   ..., k+n-1] (n points)
         for k in range(n, N - n):
-            # Windows
-            x_left  = x[k - n : k]
-            y_left  = y[k - n : k]
-            x_right = x[k : k + n]
-            y_right = y[k : k + n]
-
-            # Guard: need finite data
-            if (len(y_left) != n) or (len(y_right) != n):
-                continue
-            if not (np.all(np.isfinite(y_left)) and np.all(np.isfinite(y_right))):
+            xL, yL = x[k-n:k], y[k-n:k]
+            xR, yR = x[k:k+n], y[k:k+n]
+            if not (np.all(np.isfinite(yL)) and np.all(np.isfinite(yR))):
                 continue
 
-            # Means
-            mean_left  = float(np.mean(y_left))
-            mean_right = float(np.mean(y_right))
-
-            # Combined window {X, Y} of size 2n (population moments)
-            y_full = np.concatenate([y_left, y_right])
-            if not np.all(np.isfinite(y_full)):
-                continue
-
-            # Population variance via second moment: Var = E[Y^2] - (E[Y])^2
-            Ey   = np.mean(y_full)
-            Ey2  = np.mean(y_full ** 2)
-            varY = Ey2 - Ey ** 2
+            mL = float(np.mean(yL))
+            mR = float(np.mean(yR))
+            yF = np.concatenate([yL, yR])
+            Ey, Ey2 = np.mean(yF), np.mean(yF**2)
+            varY = Ey2 - Ey**2
             if not np.isfinite(varY) or varY <= 0:
-                # cannot compute a meaningful z-score
                 continue
 
-            sigma_Y    = np.sqrt(varY)          # ddof = 0 (population)
+            sigma_Y = np.sqrt(varY)
             sigma_mu_Y = sigma_Y / np.sqrt(n)
+            kmean = abs(mL - mR) / sigma_mu_Y if sigma_mu_Y > 0 else np.inf
+            p_mean = 2 * (1 - norm.cdf(kmean))
+            sig_mean = float(np.clip(1 - p_mean, 0.0, 1.0))
 
-            # kmean and two-sided p-value
-            kmean   = abs(mean_left - mean_right) / sigma_mu_Y if sigma_mu_Y > 0 else np.inf
-            p_mean  = 2 * (1 - norm.cdf(kmean))
-            sig_mean = 1 - p_mean
-            sig_mean = float(np.clip(sig_mean, 0.0, 1.0))
+            try:
+                resL = linregress(xL, yL)
+                resR = linregress(xR, yR)
+            except Exception:
+                continue
 
-            # Optional slope-change gate (two-sided z on difference of slopes)
-            sig_slope = 1.0  # neutral if not required
-            slope_info = {}
+            bL, bR = resL.slope, resR.slope
+            seL, seR = resL.stderr, resR.stderr
+            if seL is None or seR is None or (seL == 0 and seR == 0):
+                continue
 
-            lr_left  = linregress(x_left,  y_left)
-            lr_right = linregress(x_right, y_right)
+            k_slope = abs(bL - bR) / np.sqrt(seL**2 + seR**2)
+            p_slope = 2 * (1 - norm.cdf(k_slope))
+            sig_slope = float(np.clip(1 - p_slope, 0.0, 1.0))
 
-            slope_left,  se_left  = lr_left.slope,  lr_left.stderr
-            slope_right, se_right = lr_right.slope, lr_right.stderr
-
-            if require_slope:
-                if (
-                    np.isfinite(slope_left) and np.isfinite(slope_right)
-                    and np.isfinite(se_left) and np.isfinite(se_right)
-                    and se_left > 0 and se_right > 0
-                ):
-                    z_slope = abs(slope_left - slope_right) / np.sqrt(se_left ** 2 + se_right ** 2)
-                    p_slope = 2 * (1 - norm.cdf(z_slope))  # two-sided
-                    sig_slope = 1 - p_slope
-                    sig_slope = float(np.clip(sig_slope, 0.0, 1.0))
-                    slope_info = {
-                        "slope_left": slope_left,
-                        "slope_right": slope_right,
-                        "se_left": se_left,
-                        "se_right": se_right,
-                        "z_slope": z_slope,
-                        "p_slope": p_slope,
-                    }
-                else:
-                    # If slope is required but cannot be computed reliably, treat as non-significant
-                    sig_slope = 0.0
-
-            # Combine (AND) only if slope gate is required; otherwise mean-only
-            sig_combined = min(sig_mean, sig_slope) if require_slope else sig_mean
+            sig_combined = min(sig_mean, sig_slope)
 
             details[k] = {
-                "mean_left": mean_left,
-                "mean_right": mean_right,
-                "Ey": Ey,
-                "Ey2": Ey2,
-                "sigma_Y_pop": sigma_Y,
-                "sigma_mu_Y": sigma_mu_Y,
+                "mean_left": mL,
+                "mean_right": mR,
                 "kmean": kmean,
                 "p_mean": p_mean,
                 "sig_mean": sig_mean,
+                "slope_left": bL,
+                "slope_right": bR,
+                "k_slope": k_slope,
+                "p_slope": p_slope,
                 "sig_slope": sig_slope,
                 "sig_combined": sig_combined,
-                **({"slope_details": slope_info} if slope_info else {}),
             }
 
             if sig_combined > best_sig:
                 best_sig = sig_combined
                 best_k = k
 
-        return float(best_sig), best_k, details
+        return best_sig, best_k, details
 
-    def test_trend(x, y, max_turbulence=0.10):
-        """
-        Detect an obvious trend with a bounded turbulence level.
-
-        Steps:
-        1) Fit y = a + b x via OLS. Compute two-sided p-value for slope b.
-            sig_slope = 1 - p_value.
-        2) Compute residuals; define turbulence = std(residuals) / (|b| * (max(x)-min(x))).
-            Map to a [0,1] 'turbulence significance':
-                sig_turb = clip(1 - turbulence / max_turbulence, 0, 1)
-            (==1 if turbulence=0, falls to 0 when turbulence reaches max_turbulence.)
-        3) Overall significance requires BOTH: return min(sig_slope, sig_turb).
-
-        Args:
-        x, y : sequences of equal length
-        max_turbulence : acceptable turbulence ratio threshold (default 0.30)
-
-        Returns:
-        significance in [0,1]
-        """
+    def test_trend(x, y):
         x = np.asarray(x, dtype=float)
         y = np.asarray(y, dtype=float)
 
         if len(x) != len(y) or len(x) < MINI_DATASET:
-            return 0.0
+            return 0.0, np.inf
 
-        # Guard for finite values
         mask = np.isfinite(x) & np.isfinite(y)
         if mask.sum() < MINI_DATASET:
-            return 0.0
+            return 0.0, np.inf
         x, y = x[mask], y[mask]
+        n = len(x)
+        if n < 3:
+            return 0.0, np.inf
 
-        # OLS trend
         res = linregress(x, y)
         slope = res.slope
         intercept = res.intercept
         se = res.stderr
-        n = len(x)
 
-        if not np.isfinite(slope) or not np.isfinite(se) or se <= 0 or n < 3:
-            return 0.0
+        if not np.isfinite(slope) or not np.isfinite(se) or se <= 0:
+            return 0.0, np.inf
 
-        # Two-sided slope significance
         t_stat = slope / se
-        df = n - 2
-        p_value = 2 * (1 - t.cdf(abs(t_stat), df))
-        sig_slope = float(np.clip(1 - p_value, 0.0, 1.0))
+        dfree = n - 2
+        if dfree <= 0:
+            return 0.0, np.inf
+        p_value = 2 * (1 - t.cdf(abs(t_stat), df= dfree))
+        significance = float(np.clip(1 - p_value, 0.0, 1.0))
 
-        # Turbulence computation
         y_hat = intercept + slope * x
         residuals = y - y_hat
-        if residuals.size < 2:
-            return 0.0
+        sse = float(np.sum((residuals) ** 2))
+        rmse = np.sqrt(sse / max(n - 2, 1))
 
-        resid_std = np.nanstd(residuals, ddof=1)
         span_x = float(np.max(x) - np.min(x))
         amplitude = abs(slope) * span_x
+        rel_turbulence = (rmse / amplitude) if (np.isfinite(rmse) and amplitude > 0) else np.inf
 
-        # If the fitted trend is flat or span is zero, turbulence is undefined → no obvious trend
-        if amplitude <= 0 or not np.isfinite(resid_std):
-            return 0.0
-
-        turbulence = resid_std / amplitude
-
-        # Map turbulence to [0,1]: 1 when perfectly smooth, 0 at the threshold
-        if not np.isfinite(turbulence) or max_turbulence <= 0:
-            return 0.0
-        sig_turb = float(np.clip(1 - (turbulence / max_turbulence), 0.0, 1.0))
-
-        # Require BOTH: strong slope and acceptable turbulence
-        significance = min(sig_slope, sig_turb)
-        return significance
-
+        return significance, rel_turbulence
 
     def test_temporal_correlation(x, y):
         x = np.array(x)
         y = np.array(y)
         n = len(x)
         if n != len(y) or n < MINI_DATASET:
-            return 0.0  # Not enough data or mismatched lengths
-        # Step 1: Pearson's r
+            return 0.0
         x_mean = np.mean(x)
         y_mean = np.mean(y)
         numerator = np.sum((x - x_mean) * (y - y_mean))
@@ -480,15 +333,11 @@ def generate_insights():
         if denominator == 0 or np.isnan(denominator):
             return 0.0
         r = numerator / denominator
-        # Step 2: t-statistic
         if abs(r) == 1 or np.isnan(r):
             return 0.0
-        else:
-            t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
-            # Step 3: two-sided p-value
-            p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
-            # Step 4: significance
-            significance = 1 - p_value
+        t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
+        p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
+        significance = 1 - p_value
         return significance
 
     def test_correlation(measure1, measure2):
@@ -506,148 +355,140 @@ def generate_insights():
         r = numerator / denominator
         if abs(r) == 1 or np.isnan(r):
             return 0.0
-        else:
-            t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
-            p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
-            significance = 1 - p_value
+        t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
+        p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
+        significance = 1 - p_value
         return significance
 
     # ---------------------------insight type test functions above-----------------------------------------------------
 
     insights_set = []
 
-    # Precompute total sum for each measure
-    measure_totals = {measure: df[measure].sum() for measure in numerical_columns}
-
-    def find_matching_subspace(subspaces, item, measure2):
-        for s in subspaces:
-            if (s['filter'] == item['filter'] and
-                s['breakdown'] == item['breakdown'] and
-                s['measure'] == measure2):
-                return s
-        return None
-    
-    used_measure_pairs = set()
-
-    # i = 0
-
     for item in integrated_subspaces:
         subspace = item['filter']
         breakdown = item['breakdown']
-        measure = item['measure']
+        measure = item['measure']              # str for single, tuple for pair
         aggregated_df = item['modified_sub_df']
-        values = aggregated_df[measure].values
-        n = len(values)
-        total = np.sum(values)
-        impact = total / measure_totals[measure] if measure_totals[measure] != 0 else 0
-        insight_type = None
-        significance = 0.0
-        score = 0.0
+        subspace_count = item.get('subspace_count', 0)
+        # Impact is subspace-based
+        impact = (subspace_count / total_rows) if total_rows > 0 else 0.0
 
-        # Non-ordinal (Single Point)
-        if breakdown not in ordinal_columns:
-            # 1. Dominance (using test function)
-            dom_sig = test_dominance(values)
-            if dom_sig > THRESHOLD_SIG:
-                insight_type = "Dominance"
-                significance = dom_sig
-            # else:
-            #     # 2. Outstanding One
-            #     oo_sig = test_outstanding_one(values)
-            #     if oo_sig > THRESHOLD_SIG:
-            #         insight_type = "Outstanding One"
-            #         significance = oo_sig
-            else:
-                # 3. Outstanding Twin
-                otwin_sig = test_outstanding_twin(values)
-                if otwin_sig > THRESHOLD_SIG:
-                    insight_type = "Outstanding Twin"
-                    significance = otwin_sig
-                else:
-                    evenness_sig = test_evenness(values)
+        # ---------- SINGLE MEASURE ----------
+        if not isinstance(measure, (tuple, list)):
+            values = pd.to_numeric(aggregated_df[measure], errors="coerce").values
+            vals = np.asarray(values, dtype=float)
+            vals = vals[np.isfinite(vals)]
+            if vals.size == 0:
+                continue
+
+            insight_type = None
+            significance = 0.0
+
+            # Non-ordinal (Single Point)
+            if breakdown not in ordinal_columns:
+                total = float(np.sum(vals))
+                if total <= 0:
+                    continue
+
+                sorted_vals = np.sort(vals)[::-1]
+                percents = sorted_vals / total * 100.0
+                top1 = percents[0]
+                top2 = percents[1] if percents.size > 1 else 0.0
+
+                # --- rule 1: top1 > 60% -> Dominance ---
+                if top1 > 60:
+                    dom_sig = test_dominance(vals)
+                    if dom_sig > THRESHOLD_SIG:
+                        insight_type = "Dominance"
+                        significance = dom_sig
+
+                # --- rule 2: (else) top1 > 30% and top2 > 30% -> Outstanding Twin ---
+                if insight_type is None and (top1 > 30 and top2 > 30):
+                    otwin_sig = test_outstanding_twin(vals)
+                    if otwin_sig > THRESHOLD_SIG:
+                        insight_type = "Outstanding Twin"
+                        significance = otwin_sig
+
+                # --- rule 3: (else) Evenness ---
+                if insight_type is None:
+                    evenness_sig = test_evenness(vals)
                     if evenness_sig > UNIFORMITY_THRESHOLD:
                         insight_type = "Evenness"
                         significance = evenness_sig
 
-        # Ordinal (Single Shape)
-        else:
-            x = np.arange(len(values))
-            # 1. Change Point
-            cp_sig, cp_idx, _ = test_change_point(x, values, window_size=3)
-            if cp_sig > THRESHOLD_SIG:
-                insight_type = "Change Point"
-                significance = cp_sig   
+            # Ordinal (Single Shape)
             else:
-                # 2. Trend
-                trend_sig = test_trend(x, values)
-                if trend_sig > THRESHOLD_SIG:
-                    insight_type = "Trend"
-                    significance = trend_sig
+                x = np.arange(len(vals))
+                if len(x) >= 3:
+                    trend_sig, turbulence = test_trend(x, vals)
+                else:
+                    trend_sig, turbulence = (0.0, np.inf)
 
-        # Record single insight
-        if insight_type:
-            score = significance * impact
-            insights_set.append({
-                'subspace': subspace,
-                'breakdown': breakdown,
-                'measure': measure,
-                'type': insight_type,
-                'impact': impact,
-                'significance': significance,
-                'score': score,
-                'aggregated_df': aggregated_df
-            })
+                if turbulence < 0.5:
+                    if trend_sig > THRESHOLD_SIG:
+                        insight_type = "Trend"
+                        significance = trend_sig
+                    else:
+                        cp_sig, cp_idx, _ = test_change_point(x, vals, window_size=3)
+                        if cp_sig > THRESHOLD_SIG:
+                            insight_type = "Change Point"
+                            significance = cp_sig
+                else:
+                    cp_sig, cp_idx, _ = test_change_point(x, vals, window_size=3)
+                    if cp_sig > THRESHOLD_SIG:
+                        insight_type = "Change Point"
+                        significance = cp_sig
 
-            # print(f"Single {i}: {subspace}, t: {insight_type}, m: {measure}, b: {breakdown}, l: {n}")
-            # i += 1
-
-        # Compound Insights: correlation or cross-measure correlation
-        for measure2 in numerical_columns:
-            if measure2 == measure:
-                continue
-            matched = find_matching_subspace(integrated_subspaces, item, measure2)
-            if not matched:
-                continue
-            new_matched_pair = tuple(sorted([measure, measure2]))
-            compound_key = (str(subspace), breakdown, new_matched_pair)
-            if compound_key in used_measure_pairs:
-                continue
-            used_measure_pairs.add(compound_key)
-            
-            values2 = matched['modified_sub_df'][measure2].values
-            min_len = min(len(values), len(values2))
-            if min_len < COMPOUND_MINI_DATASET:
-                continue
-            if breakdown in ordinal_columns:
-                corr_sig = test_temporal_correlation(values[:min_len], values2[:min_len])
-                compound_type = "Temporal Correlation"
-            else:
-                corr_sig = test_correlation(values[:min_len], values2[:min_len])
-                compound_type = "Correlation"
-            if corr_sig > THRESHOLD_SIG:
-                # Impact: average impact of both measures
-                impact2 = np.sum(values2) / measure_totals[measure2] if measure_totals[measure2] != 0 else 0
-                compound_impact = (impact + impact2) / 2
-                score = corr_sig * compound_impact
-                merged_df = pd.merge(
-                    aggregated_df[[breakdown, measure]],
-                    matched['modified_sub_df'][[breakdown, measure2]],
-                    on=breakdown,
-                    how='inner'
-                )
+            # Record single insight
+            if insight_type:
+                score = significance * impact
                 insights_set.append({
                     'subspace': subspace,
                     'breakdown': breakdown,
-                    'measure': new_matched_pair,
-                    'type': compound_type,
-                    'impact': compound_impact,
-                    'significance': corr_sig,
+                    'measure': measure,  # single str
+                    'type': insight_type,
+                    'impact': impact,
+                    'significance': significance,
                     'score': score,
-                    'aggregated_df': merged_df
+                    'aggregated_df': aggregated_df[[breakdown, measure]]
                 })
 
-                # print(f"Compound {i}: {subspace}, t: {insight_type}, m: {measure}, b: {breakdown}, l: {n}")
-                # i += 1
+        # ---------- COMPOUND (PAIR OF MEASURES, UNORDERED) ----------
+        else:
+            m1, m2 = tuple(sorted(list(measure)))
+            if m1 not in aggregated_df.columns or m2 not in aggregated_df.columns:
+                continue
+
+            v1 = pd.to_numeric(aggregated_df[m1], errors="coerce").values
+            v2 = pd.to_numeric(aggregated_df[m2], errors="coerce").values
+
+            mask = np.isfinite(v1) & np.isfinite(v2)
+            v1 = v1[mask]
+            v2 = v2[mask]
+
+            min_len = min(len(v1), len(v2))
+            if min_len < COMPOUND_MINI_DATASET:
+                continue
+
+            if breakdown in ordinal_columns:
+                corr_sig = test_temporal_correlation(v1[:min_len], v2[:min_len])
+                compound_type = "Temporal Correlation"
+            else:
+                corr_sig = test_correlation(v1[:min_len], v2[:min_len])
+                compound_type = "Correlation"
+
+            if corr_sig > THRESHOLD_SIG:
+                score = corr_sig * impact
+                insights_set.append({
+                    'subspace': subspace,
+                    'breakdown': breakdown,
+                    'measure': (m1, m2),  # store as tuple to emphasize unordered pair
+                    'type': compound_type,
+                    'impact': impact,
+                    'significance': corr_sig,
+                    'score': score,
+                    'aggregated_df': aggregated_df[[breakdown, m1, m2]].copy()
+                })
 
     # -------------------------------------------------------------------------------------------------------------
 
