@@ -104,7 +104,7 @@ function App() {
 
   useEffect(() => {
     if (backendStage !== "ready") return;
-    if (!selectedCollection || filterOrder.length === 0) return;
+    if (!selectedCollection) return;
 
     fetch(`${API_BASE}/api/collection_sections`, {
       method: "POST",
