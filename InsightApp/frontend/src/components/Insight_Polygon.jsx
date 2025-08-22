@@ -138,6 +138,9 @@ function hexToRgbaStr(hex, alpha = 1) {
 }
 
 function lightenRGBColor(colorString, index, maxIndex) {
+  // Guard: null/undefined/empty → safe fallback
+  if (colorString == null) return "rgb(200, 200, 200)";
+
   // NEW: support hex input
   if (typeof colorString === "string" && colorString.startsWith("#")) {
     colorString = hexToRgbaStr(colorString);
@@ -320,9 +323,9 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
       filter_sequence: filterOrder,
       filter_colors: filterOrder.map((_, i) => filterColors[i % filterColors.length])
     };
-
     console.log("Sending to /api/polygon_split:", payload);
-
+    
+    // setPolygonSections(null); // clear before fetching fresh
     fetch("http://localhost:5000/api/polygon_split", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -332,6 +335,8 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
       .then(data => setPolygonSections(data))
       .catch(err => console.error("Error fetching polygon split:", err));
   }, [points, sectionData, filterOrder]);
+
+  // console.log("PolygonSectionData: ", polygonSections)
 
   useEffect(() => {
     if (!sectionData) return;
@@ -345,7 +350,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
   const maxInsightCount = Math.max(...leafSegments.map(seg => seg.insights?.length || 0), 1);
 
-  const colorPalette = d3.schemeSet2;
+  const colorPalette = d3.schemeObservable10;
 
   const uniqueMeasureKeys = (collection?.measure_set || []).map(item =>
     Array.isArray(item) ? item.join("|") : item
@@ -355,14 +360,17 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
     colorMap[key] = colorPalette[i % colorPalette.length];
   });
 
-    const insightKey = (i) =>
-    JSON.stringify({
-      type: i?.type,
-      breakdown: i?.breakdown,
-      subspace: i?.subspace,
-      measure: Array.isArray(i?.measure) ? [...i.measure].sort() : [i?.measure],
-    });
+  const insightKey = (i) =>
+  JSON.stringify({
+    type: i?.type,
+    breakdown: i?.breakdown,
+    subspace: i?.subspace,
+    measure: Array.isArray(i?.measure) ? [...i.measure].sort() : [i?.measure],
+  });
 
+  const hasSplitLines = Array.isArray(polygonSections?.split_lines)
+  ? polygonSections.split_lines.length > 0
+  : !!polygonSections?.split_lines;
 
   // ⛔ Hook declarations above ⛔ — now safe to return early
   if (!collection) return <div style={{ padding: 32 }}>Select a polygon to explore details.</div>;
@@ -376,7 +384,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           height: height,
           background: "white",
           flexShrink: 0,
-          border: "0px solid #ccc"  // 👈 Add this line
+          border: "0px solid #ccc"
         }}
       >
         {/* Arrowhead marker definition */}
@@ -458,7 +466,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           })}
 
         {/* Split lines with level-based fading */}
-        {polygonSections?.split_lines
+        {hasSplitLines && polygonSections?.split_lines
           ?.sort((a, b) => b.level - a.level)  // lower level (shallower) drawn last (on top)
           .map((line, i) => {
             const { color, level, index_in_level, coordinates } = line;
@@ -505,7 +513,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         })}
 
         {/* barchart part */}
-        {points.map(([x1, y1], i) => {
+        {hasSplitLines && points.map(([x1, y1], i) => {
           const [x2, y2] = points[(i + 1) % sides];
           const dx = x2 - x1;
           const dy = y2 - y1;
@@ -623,7 +631,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
 
       {/* Attribute */}
-      {points.map(([x1, y1], i) => {
+      {hasSplitLines && points.map(([x1, y1], i) => {
         const attr = filterOrder[i];
         const color = attr ? filterColors[i % filterColors.length] : "#000";
 
