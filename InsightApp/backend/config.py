@@ -73,29 +73,27 @@ def clear_all() -> None:
 # Type metadata
 TYPE_METADATA = {
     "Dominance":            ("SinglePoint",     "#1f77b4", "*"),
-    # "Outstanding One":      ("SinglePoint",     "#1f77b4", "↑"),
     "Outstanding Twin":     ("SinglePoint",     "#1f77b4", "⇈"),
     "Evenness":             ("SinglePoint",     "#1f77b4", "="),
     "Change Point":         ("SingleShape",     "#ff7f0e", "↷"),
     "Trend":                ("SingleShape",     "#ff7f0e", "/"),
-    # "Evenness":             ("SingleShape",     "#ff7f0e", "="),
     "Temporal Correlation": ("Compound",        "#2ca02c", "∞"),
     "Correlation":          ("Compound",        "#2ca02c", "⊗"),
 }
 
 # Weights for similarity components (can be adjusted centrally)
-W_FILTER = 0.3
-W_MEASURE = 0.2
-W_BREAKDOWN = 0.2
-W_TYPE = 0.2
-W_SCORE = 0.1
+W_FILTER = 0.4
+W_TYPE = 0.4
+# W_SCORE = 0.1
+BETA_FILTER = 0.5
+BETA_TYPE = 0.5
 
 # Circle radius limits for layout sizing
-MIN_RADIUS = 0.02
-MAX_RADIUS = 0.07
+MIN_RADIUS = 0.04
+MAX_RADIUS = 0.1
 
 # Padding for overlap avoidance
-OVERLAP_PADDING = 0.02
+OVERLAP_PADDING = 0.01
 EDGE_BUFFER = 0.01
 
 # MDS random state (for reproducibility)
