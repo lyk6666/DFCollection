@@ -134,7 +134,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
 
         const cx = scaleX(insight.x);
         const cy = scaleY(insight.y);
-        const r = Math.min(width, height) * 0.03 ; // larger for largest insight
+        const r = Math.min(width, height) * 0.04 ; // larger for largest insight
 
         const fillColor = isSelected
           ? insight.color
