@@ -8,6 +8,8 @@ import * as d3 from "d3";
 function CollectionSummary({ insights, collections, width, height, onFilterSelected }) {
   // === 1️⃣ Score distribution ===
   const scoreData = useMemo(() => {
+    if (!collections || collections.length === 0) return [];
+
     const scores = collections.map(c => c.total_score ?? 0);
     const minScore = 0;
     const maxScore = Math.ceil(Math.max(...scores));
@@ -15,9 +17,12 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
 
     const bins = [];
     for (let i = minScore; i < maxScore; i += binSize) {
+      const binStart = Number(i.toFixed(1));
+      const binEnd = Number((i + binSize).toFixed(1));
       bins.push({
-        binStart: i,
-        binLabel: `${i.toFixed(1)}-${(i + binSize).toFixed(1)}`,
+        binStart,
+        binEnd,
+        binLabel: `${binStart.toFixed(1)}-${binEnd.toFixed(1)}`,
         count: 0
       });
     }
@@ -101,14 +106,17 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
       <div style={{ width: chartWidth, height: "100%", backgroundColor: "white", border: "0.5px solid #ccc" }}>
         <h4 style={{ color: "grey", textAlign: "center", fontSize }}>Score Distribution</h4>
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <ComposedChart
+          <BarChart
             data={scoreData}
             margin={{
               top: 0,
               right: width * 0.02,
               bottom: height * 0.02,
               left: -width * 0.07
+              
             }}
+            barCategoryGap="0%"
+            barGap={0}            
           >
             <CartesianGrid stroke="#f5f5f5" />
             <XAxis
@@ -123,18 +131,15 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
             />
             <YAxis tick={{ fontSize: fontSize * 0.8 }} allowDecimals={false} />
             <Tooltip />
-
-            {/* ✅ Only Area is kept */}
-            <Area
-              type="monotone"
+            <Bar
               dataKey="count"
-              stroke="#a5a5a5ff"
-              fill="#cfcfcfff"
-              fillOpacity={0.4}
-              dot={{ r: 0, stroke: '#FF6600', strokeWidth: 1 }}
-              activeDot={{ r: 4 }}
+              fill="#a5a5a5ff"
+              fillOpacity={0.8}
+              onClick={(data) => {
+                onFilterSelected({ type: "score", min: data.binStart, max: data.binEnd });
+              }}
             />
-          </ComposedChart>
+          </BarChart>
         </ResponsiveContainer>
 
       </div>
