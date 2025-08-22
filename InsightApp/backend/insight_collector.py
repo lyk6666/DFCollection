@@ -2,6 +2,10 @@ from collections import defaultdict
 from config import (
     MIN_RADIUS, MAX_RADIUS, EDGE_BUFFER
 )
+import numpy as np
+from sklearn.manifold import MDS
+import math
+from sklearn.preprocessing import MinMaxScaler
 
 def group_insights(insights):
 
@@ -43,16 +47,44 @@ def group_insights(insights):
 
     return insight_collections
 
-def jaccard_similarity(set1, set2):
-    set1, set2 = set(set1), set(set2)
-    if not set1 and not set2:
+def size_similarity(a, b):
+    a, b = set(a), set(b)
+    n1, n2 = len(a), len(b)
+    if n1 == 0 and n2 == 0:
         return 1.0
-    intersection = set1 & set2
-    union = set1 | set2
-    return len(intersection) / len(union)
+    if n1 == 0 or n2 == 0:
+        return 0.0
+    return min(n1, n2) / max(n1, n2)
+
+
+def overlap_coefficient(a, b):
+    a, b = set(a), set(b)
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+    return len(a & b) / min(len(a), len(b))
+
+
+def hybrid_similarity(a, b, beta=0.5):
+    """
+    beta ∈ [0,1]: weight on size similarity vs. overlap coefficient.
+    beta=0.5 gives equal weight.
+    """
+    ss = size_similarity(a, b)
+    oc = overlap_coefficient(a, b)
+    return beta * ss + (1 - beta) * oc
+
 
 def compute_collection_similarities(collections):
-    from config import W_FILTER, W_MEASURE, W_BREAKDOWN, W_TYPE, W_SCORE
+    # Config now only needs W_FILTER, W_TYPE, W_SCORE and the betas:
+    #   BETA_FILTER, BETA_TYPE  (defaults provided if absent)
+    from config import W_FILTER, W_TYPE
+    try:
+        from config import BETA_FILTER, BETA_TYPE
+    except Exception:
+        BETA_FILTER, BETA_TYPE = 0.5, 0.5
+
     similarities = []
 
     for i in range(len(collections)):
@@ -60,35 +92,51 @@ def compute_collection_similarities(collections):
             col1 = collections[i]
             col2 = collections[j]
 
-            # Jaccard similarities
-            sim_filter = jaccard_similarity(col1["filter_set"], col2["filter_set"])
-            sim_measure = jaccard_similarity(col1["measure_set"], col2["measure_set"])
-            sim_breakdown = jaccard_similarity(col1["breakdown_set"], col2["breakdown_set"])
-            sim_type = jaccard_similarity(col1["type_set"], col2["type_set"])
-            
-            # Total score similarity
+            # HYBRID similarities for "subspace/filter" and "type"
+            sim_filter = hybrid_similarity(
+                col1.get("filter_set", []),
+                col2.get("filter_set", []),
+                beta=BETA_FILTER,
+            )
+            sim_type = hybrid_similarity(
+                col1.get("type_set", []),
+                col2.get("type_set", []),
+                beta=BETA_TYPE,
+            )
+
+            # Total score similarity (assumes score ∈ [0,1])
             score1 = col1.get("total_score")
             score2 = col2.get("total_score")
-            score_sim = 1 - abs(score1 - score2)  # assumes score ∈ [0,1]
+            if score1 is None or score2 is None:
+                score_sim = 0.0
+            else:
+                score_sim = 1 - abs(score1 - score2)
+                # clamp to [0,1] for safety
+                if score_sim < 0:
+                    score_sim = 0.0
+                elif score_sim > 1:
+                    score_sim = 1.0
 
-            # Weighted combination
+            # Weighted combination (measure/breakdown removed)
             weighted_similarity = (
                 W_FILTER * sim_filter +
-                W_MEASURE * sim_measure +
-                W_BREAKDOWN * sim_breakdown +
                 W_TYPE * sim_type +
-                W_SCORE * score_sim
+                (1 - W_FILTER - W_TYPE) * score_sim
             )
 
             similarities.append({
                 "collection_1": i,
                 "collection_2": j,
                 "similarity": weighted_similarity,
+                "components": {
+                    "filter_hybrid": sim_filter,
+                    "type_hybrid": sim_type,
+                    "score_sim": score_sim,
+                },
             })
 
     return similarities
 
-import numpy as np
 
 def compute_distance_matrix(similarities, num_collections):
     # Initialize with 1.0 distances (max distance by default)
@@ -105,11 +153,6 @@ def compute_distance_matrix(similarities, num_collections):
     np.fill_diagonal(distance_matrix, 0)
 
     return distance_matrix.tolist()  # for JSON serialization
-
-import numpy as np
-from sklearn.manifold import MDS
-import math
-from sklearn.preprocessing import MinMaxScaler
 
 def compute_mds_positions(similarities, num_collections):
     # Step 1: Build full distance matrix
@@ -133,7 +176,7 @@ def compute_mds_positions(similarities, num_collections):
 
     return [{"x": float(xi), "y": float(yi)} for xi, yi in zip(x_norm, y_norm)]
 
-def avoid_overlap(positions, scores, padding=0.02):
+def avoid_overlap(positions, scores, padding=0.01):
     from sklearn.preprocessing import MinMaxScaler
     import math
     import numpy as np
