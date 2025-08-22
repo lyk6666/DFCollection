@@ -48,8 +48,8 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
     switch (selectedFilter.type) {
       case "score": {
         const score = collection.total_score ?? 0;
-        const [low, high] = selectedFilter.bin.split("-").map(parseFloat);
-        return score >= low && score < high;
+        const { min, max } = selectedFilter;
+        return score >= min && score < max;
       }
       case "type_count": {
         const typeCount = new Set(collection.insights.map(ins => ins.type)).size;
