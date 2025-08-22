@@ -71,70 +71,93 @@ def intra_coupled_similarity():
     return attribute_distributions
 
 def inter_coupled_similarity():
+    """
+    Dummy inter-similarity: set similarity of all pairs to 1, since we didn't consider it. May include the inter-similarity measure if interested.
+    """
     df = config.DATAFRAME
     cats = config.CATEGORICAL_COLUMNS
-    ords = config.ORDINAL_COLUMNS
-
-    def phi_j_to_k(df, attr_j, attr_k, vj):
-        filtered_df = df[df[attr_j] == vj]
-        return set(filtered_df[attr_k].dropna().unique())
-
-    def P_k_given_j(df, attr_j, attr_k, vj, vk):
-        count_vj = len(df[df[attr_j] == vj])
-        if count_vj == 0:
-            return 0.0
-        count_vk_and_vj = len(df[(df[attr_j] == vj) & (df[attr_k] == vk)])
-        return count_vk_and_vj / count_vj
-
-    def IRSI_jk(df, attr_j, attr_k, vjx, vjy):
-        phi_x = phi_j_to_k(df, attr_j, attr_k, vjx)
-        phi_y = phi_j_to_k(df, attr_j, attr_k, vjy)
-        intersection = phi_x & phi_y
-
-        if not intersection:
-            return 0.0
-
-        similarities = []
-        for vk in intersection:
-            pkj_x = P_k_given_j(df, attr_j, attr_k, vjx, vk)
-            pkj_y = P_k_given_j(df, attr_j, attr_k, vjy, vk)
-            similarities.append(min(pkj_x, pkj_y))
-
-        return min(similarities)
-
-    def IRSI_full(df, attr_j, vjx, vjy, categorical_columns):
-        similarities = []
-        for attr_k in categorical_columns:
-            if attr_k == attr_j:
-                continue
-            sim_jk = IRSI_jk(df, attr_j, attr_k, vjx, vjy)
-            similarities.append(sim_jk)
-        if not similarities:
-            return 0.0
-        return sum(similarities) / len(similarities)
-
-    categorical_columns = cats
-
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     result = {}
 
-    for attr_j in categorical_columns:
+    for attr_j in cats:
         values = sorted(df[attr_j].dropna().unique())
         similarity_matrix = {}
 
         for vjx in values:
             similarity_matrix[vjx] = {}
             for vjy in values:
-                if vjx == vjy:
-                    similarity_matrix[vjx][vjy] = 1.0
-                else:
-                    sim = IRSI_full(df, attr_j, vjx, vjy, categorical_columns)
-                    similarity_matrix[vjx][vjy] = round(sim, 4)
+                similarity_matrix[vjx][vjy] = 1.0  # all similarities = 1
 
         result[attr_j] = similarity_matrix
 
     return result
+
+
+# def inter_coupled_similarity():
+#     df = config.DATAFRAME
+#     cats = config.CATEGORICAL_COLUMNS
+#     ords = config.ORDINAL_COLUMNS
+
+#     def phi_j_to_k(df, attr_j, attr_k, vj):
+#         filtered_df = df[df[attr_j] == vj]
+#         return set(filtered_df[attr_k].dropna().unique())
+
+#     def P_k_given_j(df, attr_j, attr_k, vj, vk):
+#         count_vj = len(df[df[attr_j] == vj])
+#         if count_vj == 0:
+#             return 0.0
+#         count_vk_and_vj = len(df[(df[attr_j] == vj) & (df[attr_k] == vk)])
+#         return count_vk_and_vj / count_vj
+
+#     def IRSI_jk(df, attr_j, attr_k, vjx, vjy):
+#         phi_x = phi_j_to_k(df, attr_j, attr_k, vjx)
+#         phi_y = phi_j_to_k(df, attr_j, attr_k, vjy)
+#         intersection = phi_x & phi_y
+
+#         if not intersection:
+#             return 0.0
+
+#         similarities = []
+#         for vk in intersection:
+#             pkj_x = P_k_given_j(df, attr_j, attr_k, vjx, vk)
+#             pkj_y = P_k_given_j(df, attr_j, attr_k, vjy, vk)
+#             similarities.append(min(pkj_x, pkj_y))
+
+#         return min(similarities)
+
+#     def IRSI_full(df, attr_j, vjx, vjy, categorical_columns):
+#         similarities = []
+#         for attr_k in categorical_columns:
+#             if attr_k == attr_j:
+#                 continue
+#             sim_jk = IRSI_jk(df, attr_j, attr_k, vjx, vjy)
+#             similarities.append(sim_jk)
+#         if not similarities:
+#             return 0.0
+#         return sum(similarities) / len(similarities)
+
+#     categorical_columns = cats
+
+#     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+#     result = {}
+
+#     for attr_j in categorical_columns:
+#         values = sorted(df[attr_j].dropna().unique())
+#         similarity_matrix = {}
+
+#         for vjx in values:
+#             similarity_matrix[vjx] = {}
+#             for vjy in values:
+#                 if vjx == vjy:
+#                     similarity_matrix[vjx][vjy] = 1.0
+#                 else:
+#                     sim = IRSI_full(df, attr_j, vjx, vjy, categorical_columns)
+#                     similarity_matrix[vjx][vjy] = round(sim, 4)
+
+#         result[attr_j] = similarity_matrix
+
+#     return result
 
 def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
                                      weight_coupled=0.5, weight_breakdown=0.1, weight_measure=0.1,
@@ -218,7 +241,7 @@ def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
 
     return distance_matrix
 
-def avoid_overlap(positions, scores, padding=0.01, r_fixed=0.03):
+def avoid_overlap(positions, scores, padding=0.01, r_fixed=0.04):
     import math
 
     edge_buffer = 0.01
