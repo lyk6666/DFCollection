@@ -1,4 +1,3 @@
-# config.py
 from __future__ import annotations
 from typing import Optional, List, Dict
 import pandas as pd
@@ -9,10 +8,20 @@ COMPOUND_MINI_DATASET = 3
 UNIFORMITY_THRESHOLD = 0.90
 THRESHOLD_SIG = 0.95
 
-"""
-Central place to hold the current dataset and user selections,
-replacing the old hard-coded CSV_PATH. Everything starts as None.
-"""
+# Weights for similarity components (can be adjusted centrally)
+W_FILTER = 0.4
+W_TYPE = 0.4
+
+# Collection Similarity: higher --> more emphasis on filter count
+BETA_FILTER = 0.5
+# Collection Similarity: higher --> more emphasis on type variety
+BETA_TYPE = 0.5
+
+# DR parameter: MDS
+MDS_SEED = 42
+
+# Parameter of adjusting the size of polygon
+R_BETA = 0.8
 
 # === Current dataset & selections (mutable globals) ===
 DATAFRAME: Optional[pd.DataFrame] = None
@@ -70,31 +79,13 @@ def clear_all() -> None:
     NUMERICAL_COLUMNS = None
     MEASURE_AGGS = None
 
-# Type metadata
 TYPE_METADATA = {
-    "Dominance":            ("SinglePoint",     "#1f77b4", "*"),
-    "Outstanding Twin":     ("SinglePoint",     "#1f77b4", "⇈"),
-    "Evenness":             ("SinglePoint",     "#1f77b4", "="),
-    "Change Point":         ("SingleShape",     "#ff7f0e", "↷"),
-    "Trend":                ("SingleShape",     "#ff7f0e", "/"),
-    "Temporal Correlation": ("Compound",        "#2ca02c", "∞"),
-    "Correlation":          ("Compound",        "#2ca02c", "⊗"),
+    "Dominance":            ("SinglePoint",     "#1f77b4"),
+    "Outstanding Twin":     ("SinglePoint",     "#1f77b4"),
+    "Evenness":             ("SinglePoint",     "#1f77b4"),
+    "Change Point":         ("SingleShape",     "#ff7f0e"),
+    "Trend":                ("SingleShape",     "#ff7f0e"),
+    "Skewness":             ("SingleShape",     "#ff7f0e"),
+    "Temporal Correlation": ("Compound",        "#2ca02c"),
+    "Correlation":          ("Compound",        "#2ca02c"),
 }
-
-# Weights for similarity components (can be adjusted centrally)
-W_FILTER = 0.4
-W_TYPE = 0.4
-# W_SCORE = 0.1
-BETA_FILTER = 0.5
-BETA_TYPE = 0.5
-
-# Circle radius limits for layout sizing
-MIN_RADIUS = 0.04
-MAX_RADIUS = 0.1
-
-# Padding for overlap avoidance
-OVERLAP_PADDING = 0.01
-EDGE_BUFFER = 0.01
-
-# MDS random state (for reproducibility)
-MDS_SEED = 42

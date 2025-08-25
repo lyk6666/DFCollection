@@ -1,4 +1,3 @@
-# insight_categorical_similarity.py
 from sklearn.manifold import MDS
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
@@ -16,12 +15,8 @@ import config
 def intra_coupled_similarity(): 
     df = config.DATAFRAME
     cats = config.CATEGORICAL_COLUMNS
-    ords = config.ORDINAL_COLUMNS
 
     categorical_columns = cats
-
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
     attribute_distributions = {}
 
     for col in categorical_columns:
@@ -167,9 +162,7 @@ def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
 
     for i in range(n):
         for j in range(n):
-            ######################
             # Coupled similarity
-            ######################
             sim_total = 0
             count = 0
             all_attrs = insights[i]['subspace'].keys()
@@ -190,16 +183,13 @@ def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
 
             coupled_similarity = (sim_total / count) if count > 0 else 0.0
 
-            ######################
             # Breakdown similarity (binary match)
-            ######################
             breakdown_i = insights[i].get('breakdown')
             breakdown_j = insights[j].get('breakdown')
             breakdown_sim = 1.0 if breakdown_i == breakdown_j else 0.0
 
-            ######################
             # Measure similarity (overlap for list or scalar)
-            ######################
+
             measure_i = insights[i].get('measure')
             measure_j = insights[j].get('measure')
 
@@ -211,23 +201,17 @@ def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
             total_count = len(set(measure_i_list + measure_j_list))
             measure_sim = overlap_count / total_count if total_count > 0 else 0.0
 
-            ######################
             # Type similarity
-            ######################
             type_i = insights[i].get('type')
             type_j = insights[j].get('type')
             type_sim = 1.0 if type_i == type_j else 0.0
 
-            ######################
             # Score similarity
-            ######################
             score_i = insights[i].get('score')
             score_j = insights[j].get('score')
             score_sim = 1.0 - abs(score_i - score_j)
 
-            ######################
             # Final weighted similarity
-            ######################
             total_similarity = (
                 weight_coupled * coupled_similarity +
                 weight_breakdown * breakdown_sim +
@@ -241,17 +225,22 @@ def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
 
     return distance_matrix
 
-def avoid_overlap(positions, scores, padding=0.01, r_fixed=0.04):
+def avoid_overlap(positions, scores, padding=None, r_fixed=None):
     import math
 
-    edge_buffer = 0.01
+    N = max(1, len(scores) if scores is not None else len(positions))
+    # Match frontend: r_norm = 1 / N
+    r_fixed = (1.0 / N) ** 0.5 * 0.3 if r_fixed is None else r_fixed
+    # Keep padding proportional so it behaves well for large N
+    padding = (0.25 * r_fixed) if padding is None else padding
 
-    # 🔧 Radii are now fixed (ignore scores entirely)
-    radii = [r_fixed for _ in scores]
+    # A tiny edge buffer; you can also tie this to r if you prefer
+    edge_buffer = max(0.01, 0.5 * padding)
 
+    radii = [r_fixed for _ in positions]
     updated = [{"x": p["x"], "y": p["y"], "r": r} for p, r in zip(positions, radii)]
 
-    # Initial clamping to keep everything inside bounds
+    # Initial clamping
     for p in updated:
         p["x"] = min(max(edge_buffer + p["r"], p["x"]), 1.0 - edge_buffer - p["r"])
         p["y"] = min(max(edge_buffer + p["r"], p["y"]), 1.0 - edge_buffer - p["r"])
@@ -265,12 +254,10 @@ def avoid_overlap(positions, scores, padding=0.01, r_fixed=0.04):
     def movement_mask(p, dx, dy):
         mask_x, mask_y = 1.0, 1.0
         new_x, new_y = p["x"] + dx, p["y"] + dy
-
         if new_x - p["r"] < edge_buffer or new_x + p["r"] > 1.0 - edge_buffer:
             mask_x = 0.0
         if new_y - p["r"] < edge_buffer or new_y + p["r"] > 1.0 - edge_buffer:
             mask_y = 0.0
-
         return mask_x, mask_y
 
     max_iters = 500
@@ -282,19 +269,18 @@ def avoid_overlap(positions, scores, padding=0.01, r_fixed=0.04):
                 if overlaps(a, b):
                     dx = a["x"] - b["x"]
                     dy = a["y"] - b["y"]
-                    dist = max(math.hypot(dx, dy), 0.01)
-                    shift = (a["r"] + b["r"] + padding - dist)
+                    dist = max(math.hypot(dx, dy), 1e-6)
+                    needed = (a["r"] + b["r"] + padding - dist)
+                    move_x = needed * dx / dist
+                    move_y = needed * dy / dist
 
-                    move_x = shift * dx / dist
-                    move_y = shift * dy / dist
+                    axm, aym = movement_mask(a, move_x, move_y)
+                    bxm, bym = movement_mask(b, -move_x, -move_y)
 
-                    ax_mask, ay_mask = movement_mask(a, move_x, move_y)
-                    bx_mask, by_mask = movement_mask(b, -move_x, -move_y)
-
-                    a["x"] += 0.5 * move_x * ax_mask
-                    a["y"] += 0.5 * move_y * ay_mask
-                    b["x"] -= 0.5 * move_x * bx_mask
-                    b["y"] -= 0.5 * move_y * by_mask
+                    a["x"] += 0.5 * move_x * axm
+                    a["y"] += 0.5 * move_y * aym
+                    b["x"] -= 0.5 * move_x * bxm
+                    b["y"] -= 0.5 * move_y * bym
 
                     moved = True
         if not moved:
@@ -331,7 +317,7 @@ def compute_insight_positions(insights, intra_mat, inter_mat, seed=42):
     for i, adj in enumerate(adjusted):
         ins = insights[i]
         insight_type = ins.get("type", "")
-        group, color, icon = TYPE_METADATA.get(insight_type, ("Unknown", "#999999", "question"))
+        group, color = TYPE_METADATA.get(insight_type, ("Unknown", "#999999", "question"))
         output.append({
             "id": i,
             "x": adj["x"],
@@ -345,7 +331,6 @@ def compute_insight_positions(insights, intra_mat, inter_mat, seed=42):
             "modified_dataset": ins.get("modified_dataset"),
             "group": group,
             "color": color,
-            "icon": icon,
         })
 
     return output
