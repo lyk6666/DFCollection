@@ -38,10 +38,51 @@ function buildDefaultOrder(attrs = [], valueSequences) {
   return [...attrs].sort((a, b) => countFor(b) - countFor(a));
 }
 
-
-function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilterOrder, selectedFilter, selectedCollection, history, valueSequences }) {
+function CollectionVoronoi({
+  width,
+  height,
+  data,
+  setSelectedCollection,
+  setFilterOrder,
+  selectedFilter,
+  selectedCollection,
+  history,
+  valueSequences
+}) {
   const ref = useRef();
 
+  // === Combo (columns) state ===
+  const [selectedCols, setSelectedCols] = useState([]); // checkboxes, before Apply
+  const [appliedCols, setAppliedCols]   = useState([]); // columns actually applied
+
+  // Build list of available columns from valueSequences
+  const allColumns = useMemo(() => {
+    if (!valueSequences) return [];
+    return Object.keys(valueSequences).sort();
+  }, [valueSequences]);
+
+  function toggleCol(col) {
+    setSelectedCols(prev => prev.includes(col)
+      ? prev.filter(c => c !== col)
+      : [...prev, col]
+    );
+  }
+  function applyCombo() {
+    setAppliedCols(selectedCols.slice());
+  }
+  function clearCombo() {
+    setSelectedCols([]);
+    setAppliedCols([]);
+  }
+
+  // Check if a collection contains ALL selected columns
+  function passesCombination(collection, cols) {
+    if (!cols || cols.length === 0) return true; // nothing applied
+    const set = new Set(collection?.filter_set || []);
+    return cols.every(c => set.has(c));
+  }
+
+  // Other filters (score/type/filter_count/filter_specified)
   function passesFilter(collection, selectedFilter) {
     if (!selectedFilter) return true;
 
@@ -86,7 +127,7 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
     // Dimensions for centered square canvas
     const PADDING = 0;
     const squareWidth = width - 2 * PADDING;
-    const squareHeight = height * 0.8 - 2 * PADDING;
+    const squareHeight = height * 0.7 - 2 * PADDING;
     const offsetX = 0;
     const offsetY = 0;
 
@@ -110,15 +151,26 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
     // Group inside inner canvas
     const innerGroup = svg.append("g").attr("transform", `translate(${offsetX}, ${offsetY})`);
 
-    // === Color scales ===
+    // helper: restrict an interpolator to a subrange [t0, t1]
+    function subInterpolator(interpolator, t0 = 0.3, t1 = 0.8) {
+      return t => interpolator(t0 + t * (t1 - t0));
+    }
+
     // (A) Filter-count colors for POLYGONS (Reds)
-    const uniqueFilterCounts = Array.from(new Set(data.map(d => d.filter_set?.length || 0))).sort((a, b) => a - b);
-    const redsSize = Math.max(3, Math.min(9, uniqueFilterCounts.length || 3));
-    const reds = d3.schemeReds[redsSize];
-    const colorScale = d3.scaleOrdinal()
-      .domain(uniqueFilterCounts)
-      // take the darkest N from the chosen palette for better contrast
-      .range(reds.slice(reds.length - uniqueFilterCounts.length));
+    const uniqueFilterCounts = Array.from(
+      new Set(data.map(d => d.filter_set?.length || 0))
+    ).sort((a, b) => a - b);
+
+    const filterExtent = d3.extent(uniqueFilterCounts); // [min, max]
+    const filterDomain =
+      filterExtent[0] === filterExtent[1]
+        ? [filterExtent[0] - 1, filterExtent[1] + 1]
+        : filterExtent;
+
+    const colorScale = d3
+      .scaleSequential(subInterpolator(d3.interpolateReds, 0.05, 0.6))
+      .domain(filterDomain)
+      .clamp(true);
 
     // (B) Type-count colors for VORONOI CELLS (Blues)
     const typeCounts = data.map(d => {
@@ -126,11 +178,17 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       return uniqueTypes.size;
     });
     const uniqueTypeCounts = Array.from(new Set(typeCounts)).sort((a, b) => a - b);
-    const bluesSize = Math.max(3, Math.min(9, uniqueTypeCounts.length || 3));
-    const blues = d3.schemeBlues[bluesSize];
-    const typeColorScale = d3.scaleOrdinal()
-      .domain(uniqueTypeCounts)
-      .range(blues.slice(blues.length - uniqueTypeCounts.length));
+
+    const typeExtent = d3.extent(uniqueTypeCounts);
+    const typeDomain =
+      typeExtent[0] === typeExtent[1]
+        ? [typeExtent[0] - 1, typeExtent[1] + 1]
+        : typeExtent;
+
+    const typeColorScale = d3
+      .scaleSequential(subInterpolator(d3.interpolateBlues, 0.05, 0.6))
+      .domain(typeDomain)
+      .clamp(true);
 
     // 🟦 Collect positions for Voronoi
     const positions = data.map(d => [
@@ -169,7 +227,10 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       const uniqueTypes = new Set((collection.insights || []).map(ins => ins.type ?? "Unknown"));
       const typeCount = uniqueTypes.size;
 
-      const match = passesFilter(collection, selectedFilter);
+      const match =
+        passesFilter(collection, selectedFilter) &&
+        passesCombination(collection, appliedCols);
+
       const fillColor = match ? typeColorScale(typeCount) : "#ccc";
 
       innerGroup.append("path")
@@ -189,7 +250,11 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       const sides = getPolygonSides(filterCount);
       const color = colorScale(filterCount);  // 🎯 same filter count = same color
 
-      const match = passesFilter(collection, selectedFilter);
+      // ✅ include combo here too
+      const match =
+        passesFilter(collection, selectedFilter) &&
+        passesCombination(collection, appliedCols);
+
       const finalColor = match ? color : "#ccc";
 
       const scaledRadius = collection.position.r * Math.min(squareHeight, squareWidth) * 0.6;
@@ -208,13 +273,13 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       innerGroup.append("path")
         .attr("d", createPolygonPath(points.length, scaledRadius, scaledX, scaledY))
         .attr("fill", finalColor)
-        .attr("stroke", "none");
+        .attr("stroke", "none")
+        .attr("fill-opacity", match ? 1 : 0.35);
 
       // Draw each side as a line
       points.forEach((start, i) => {
         const end = points[(i + 1) % points.length];
 
-        // Check if this side has a filter
         const hasFilter = i < collection.filter_set.length;
 
         innerGroup.append("line")
@@ -225,10 +290,11 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
           .attr("stroke", "#333")
           .attr("stroke-width", width * 0.0015)
           .attr("stroke-dasharray", hasFilter ? null : "1 2")
-          .attr("fill", "none");
+          .attr("fill", "none")
+          .attr("stroke-opacity", match ? 1 : 0.25);
       });
 
-      // Optional: click target in center
+      // Click target in center
       innerGroup.append("circle")
         .attr("cx", scaledX)
         .attr("cy", scaledY)
@@ -236,7 +302,6 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
         .attr("fill", "transparent")
         .on("click", () => {
           setSelectedCollection(collection);
-          console.log("clicked collection: ", collection)
           const defaultOrder = buildDefaultOrder(collection.filter_set, valueSequences);
           setFilterOrder(defaultOrder.length ? defaultOrder : [...collection.filter_set]);
         })
@@ -308,7 +373,7 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
         .attr("pointer-events", "none");
 
       overlayGroup.append("text")
-        .attr("x", badgeX).attr("y", badgeY + 0.5) // slight vertical centering
+        .attr("x", badgeX).attr("y", badgeY + 0.5)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "central")
         .attr("font-size", Math.max(10, baseR * 1.4))
@@ -319,11 +384,11 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
     });
     // —————————————— /HISTORY OVERLAYS ——————————————
 
-    // === 🎨 Color Legend (Filter Count) ===
+    // === Legends ===
     const legendWidth = squareWidth * 0.9;
     const legendHeight = width * 0.02;
-    const legendX = (width - legendWidth) / 2; // center horizontally with padding
-    const legendY = height * 0.93; // position just below square canvas
+    const legendX = (width - legendWidth) / 2;
+    const legendY = height * 0.82;
 
     const legendSteps = uniqueFilterCounts.length;
     const stepWidth = legendWidth / legendSteps;
@@ -331,10 +396,9 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
     const legendGroup = svg.append("g")
       .attr("transform", `translate(${offsetX + legendX}, ${offsetY + legendY})`);
 
-    const SPACING = 3; // space between color legend and axis
+    const SPACING = 3;
 
-    // === 🎨 Color Legend (Type Count) ===
-    const typeLegendY = height * 0.85; // a bit lower than filter count legend
+    const typeLegendY = height * 0.74;
     const typeLegendSteps = uniqueTypeCounts.length;
     const typeStepWidth = legendWidth / typeLegendSteps;
 
@@ -351,7 +415,6 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
         .attr("opacity", 0.95);
     });
 
-    // X-axis for type legend
     const typeScale = d3.scaleLinear()
       .domain(d3.extent(uniqueTypeCounts))
       .range([typeStepWidth / 2, legendWidth - typeStepWidth / 2]);
@@ -367,7 +430,6 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
     typeAxisGroup.selectAll("path, line").attr("stroke", "#666");
     typeAxisGroup.selectAll("text").style("fill", "#333").style("font-size", "8px");
 
-    // Label
     typeLegendGroup.append("text")
       .attr("x", legendWidth / 2)
       .attr("y", -0.5 * legendHeight)
@@ -375,8 +437,6 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       .attr("font-size", "8px")
       .text("Type Count");
 
-
-    // 🔽 Filter Count Color Legend (Reds)
     uniqueFilterCounts.forEach((val, i) => {
       legendGroup.append("rect")
         .attr("x", i * stepWidth)
@@ -387,7 +447,6 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
         .attr("opacity", 0.95);
     });
 
-    // === Axis below color legend
     const barCounts = uniqueFilterCounts.length;
     const XaxisOffset = legendWidth / (barCounts * 2);
 
@@ -403,12 +462,10 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       .attr("transform", `translate(0, ${legendHeight + 2 * SPACING })`)
       .call(axis);
 
-    // Style axis
     axisGroup.selectAll("path").attr("stroke", "#666");
     axisGroup.selectAll("line").attr("stroke", "#666");
     axisGroup.selectAll("text").style("fill", "#333").style("font-size", "8px");
 
-    // Label
     legendGroup.append("text")
       .attr("x", legendWidth / 2)
       .attr("y", -0.15 * legendHeight)
@@ -416,23 +473,101 @@ function CollectionVoronoi({ width, height, data, setSelectedCollection, setFilt
       .attr("font-size", "8px")
       .text("Filter Count");
 
-
-
-  }, [data, width, height, selectedFilter, selectedCollection, seqByCollection]);
+  // ⬇️ IMPORTANT: include appliedCols so Apply/Clear triggers redraw
+  }, [data, width, height, selectedFilter, selectedCollection, seqByCollection, appliedCols]);
 
   return (
-    <div style={{ width, height }}>
-      {/* Bottom: D3 Canvas */}
-      <div style={{ position: "relative" }}>
+    <div
+      style={{
+        width,
+        height,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      {/* Top controls bar (fixed height content) */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "6px 8px",
+        }}
+      >
+        {/* Scrollable columns list with INSIDE border */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            overflowX: "auto",
+            whiteSpace: "nowrap",
+            flex: 1,
+            padding: "3px 3px",
+            border: "1px solid #6b6a6aff",
+            boxSizing: "border-box",       // keeps the border inside
+          }}
+        >
+          {allColumns.map((col) => (
+            <label
+              key={col}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selectedCols.includes(col)}
+                onChange={() => toggleCol(col)}
+              />
+              <span
+                style={{
+                  color: "black",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                }}
+              >
+                {col}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        {/* Fixed Apply / Clear buttons */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            gap: 8,
+            marginLeft: 12,
+            marginRight: 12,
+          }}
+        >
+          <button onClick={applyCombo} style={{ padding: "4px 10px", fontSize: 12 }}>
+            Apply
+          </button>
+          <button onClick={clearCombo} style={{ padding: "4px 10px", fontSize: 12 }}>
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas fills the remaining height */}
+      <div style={{ position: "relative", flex: "1 1 0", minHeight: 0 }}>
         <svg
           ref={ref}
-          width={width}
-          height={height}
+          width="100%"
+          height="100%"
           style={{ display: "block", border: "0px solid #ccc" }}
         />
       </div>
     </div>
   );
+
 }
 
 export default CollectionVoronoi;
