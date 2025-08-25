@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from "react";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ScatterChart, Scatter, ResponsiveContainer, PieChart, Pie, Cell
+  ScatterChart, Scatter, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
 function HistoryView({ width, height, currentInsight, currentCollection, history = [], onShot }) {
@@ -266,6 +266,44 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
             </ResponsiveContainer>
           );
 
+        case "Skewness": {
+          // Area chart emphasizes distribution shape for skewness insights
+          return (
+            <ResponsiveContainer width={localChartW} height={localChartH}>
+              <AreaChart data={data} margin={commonMargins}>
+                {/* optional grid if you like: <CartesianGrid strokeDasharray="3 3" /> */}
+                <defs>
+                  <linearGradient id="skewFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4682B4" stopOpacity={0.75} />
+                    <stop offset="100%" stopColor="#4682B4" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey={breakdown}
+                  ticks={data.map(d => d[breakdown])}
+                  tick={{ fontSize: tickFont, angle: -10 }}
+                  label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
+                />
+                <YAxis
+                  tick={{ fontSize: tickFont }}
+                  label={{ value: measureKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
+                />
+                <Tooltip />
+                <Area
+                  type="monotone"
+                  dataKey={measureKey}
+                  stroke="#4682B4"
+                  strokeWidth={1}
+                  strokeOpacity={0.75}
+                  fill="url(#skewFill)"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          );
+        }
+
         case "Temporal Correlation": {
           const [xKey, yKey] = Array.isArray(measure) ? measure : [measure, measure];
           return (
@@ -422,8 +460,8 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   position: "absolute",
                   right: 0,
                   top: 0,
-                  width: cellW * 0.40,
-                  height: cellH * 0.45,
+                  width: cellW * 0.30,
+                  height: cellH * 0.40,
                   objectFit: "contain",
                   border: "1px solid #ddd",
                   background: "#fff",

@@ -17,6 +17,7 @@ const TYPE_METADATA = {
   "Evenness": ["SinglePoint", "#1f77b4"],
   "Change Point": ["SingleShape", "#ff7f0e"],
   "Trend": ["SingleShape", "#ff7f0e"],
+  "Skewness": ["SingleShape", "#ff7f0e"],
   "Temporal Correlation": ["Compound", "#2ca02c"],
   "Correlation": ["Compound", "#2ca02c"],
 };
@@ -32,8 +33,8 @@ function Insight_Summary({ width, height, selectedCollection }) {
   const panelH = height;
 
   // Typography / margins
-  const tickFont = Math.max(8, Math.min(panelW * 0.01, panelH * 0.02));
-  const labelFont = Math.max(10, panelH * 0.06);
+  const tickFont = panelH * 0.04;
+  const labelFont = panelH * 0.05;
   const mTop = 0;
   const mRight = panelW * 0.06;
   const mLeft = -panelW * 0.06;
@@ -91,18 +92,18 @@ function Insight_Summary({ width, height, selectedCollection }) {
   const groups = Math.max(1, pairedData.length);
 
   // Gap between category rows (px)
-  const groupGapPx = innerH * 0.09;
+  const groupGapPx = innerH * 0.15;
 
   // Gap between the two bars in the same group (px)
-  const withinGroupGapPx = innerH * 0.01;
+  const withinGroupGapPx = innerH * 0;
 
   // Height available per group after subtracting between-group gap
   const bandHeight = innerH / groups;
   const availableInBand = Math.max(0, bandHeight - groupGapPx);
 
   // Two bars per group → thickness each:
-  const barThickness = Math.min(
-    8,
+  const barThickness = Math.max(
+    height * 0.025,
     Math.floor((availableInBand - withinGroupGapPx) / 2)
   );
 
@@ -128,6 +129,7 @@ function Insight_Summary({ width, height, selectedCollection }) {
                   dataKey="type"
                   width={Math.max(80, panelW * 0.2)}
                   tick={{ fontSize: tickFont }}
+                  interval={0}
                 />
 
                 {/* Top X-axis: Score */}

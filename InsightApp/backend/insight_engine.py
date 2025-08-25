@@ -10,6 +10,8 @@ from config import (
 
 import config
 import pandas as pd
+from scipy.stats import skew, skewtest
+import numpy as np
 
 def generate_insights():
     df = config.DATAFRAME
@@ -320,6 +322,28 @@ def generate_insights():
 
         return significance, rel_turbulence
 
+    def test_skewness(values):
+        """
+        Test skewness of a numeric distribution.
+        Returns p-value and significance score (1 - p).
+        """
+        values = np.array(values, dtype=float)
+        values = values[~np.isnan(values)]  # drop NaNs
+
+        if len(values) < 8:  # skewtest requires n >= 8
+            return None, None, None
+
+        # Compute skewness coefficient
+        skewness_value = skew(values)
+
+        # Hypothesis test: H0 -> skewness = 0 (normal symmetry)
+        stat, p_value = skewtest(values)
+
+        # Significance: higher when p-value is small
+        significance = 1 - p_value
+
+        return skewness_value, p_value, significance
+
     def test_temporal_correlation(x, y):
         x = np.array(x)
         y = np.array(y)
@@ -425,19 +449,33 @@ def generate_insights():
                     trend_sig, turbulence = (0.0, np.inf)
 
                 if turbulence < 0.5:
+                    # 1) Trend
                     if trend_sig > THRESHOLD_SIG:
                         insight_type = "Trend"
                         significance = trend_sig
+                    else:
+                        # 2) Skewness
+                        _, skew_p, skew_sig = test_skewness(vals)
+                        if (skew_p is not None) and (skew_sig > THRESHOLD_SIG):
+                            insight_type = "Skewness"
+                            significance = skew_sig
+                        else:
+                            # 3) Change Point
+                            cp_sig, cp_idx, _ = test_change_point(x, vals, window_size=3)
+                            if cp_sig > THRESHOLD_SIG:
+                                insight_type = "Change Point"
+                                significance = cp_sig
+                else:
+                    # Turbulent: 1) Skewness -> 2) Change Point
+                    _, skew_p, skew_sig = test_skewness(vals)
+                    if (skew_p is not None) and (skew_sig > THRESHOLD_SIG):
+                        insight_type = "Skewness"
+                        significance = skew_sig
                     else:
                         cp_sig, cp_idx, _ = test_change_point(x, vals, window_size=3)
                         if cp_sig > THRESHOLD_SIG:
                             insight_type = "Change Point"
                             significance = cp_sig
-                else:
-                    cp_sig, cp_idx, _ = test_change_point(x, vals, window_size=3)
-                    if cp_sig > THRESHOLD_SIG:
-                        insight_type = "Change Point"
-                        significance = cp_sig
 
             # Record single insight
             if insight_type:

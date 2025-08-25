@@ -7,6 +7,7 @@ import ChangePointIcon from "../assets/icons/ChangePoint.svg";
 import TrendIcon from "../assets/icons/Trend.svg";
 import TemporalCorrelationIcon from "../assets/icons/TemporalCorrelation.svg";
 import CorrelationIcon from "../assets/icons/Correlation.svg";
+import SkewnessIcon from "../assets/icons/Skewness.svg"
 
 const ICONS = {
   "Dominance": DominanceIcon,
@@ -16,6 +17,7 @@ const ICONS = {
   "Trend": TrendIcon,
   "Temporal Correlation": TemporalCorrelationIcon,
   "Correlation": CorrelationIcon,
+  "Skewness": SkewnessIcon
 };
 
 function InsightSimilarity({ width, height, collection, onInsightClick, selectedInsight }) {
@@ -48,19 +50,6 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
   const scaleX = (x) => x * width;
   const scaleY = (y) => y * height;
   const rr = Math.min(width, height);
-  // const scaleR = (r) => r * rr;
-
-  // // Find the largest insight per color (unchanged)
-  // const largestPerColor = useMemo(() => {
-  //   const memo = {};
-  //   positionedInsights.forEach((insight) => {
-  //     const color = insight.color;
-  //     if (!memo[color] || insight.r > memo[color].r) {
-  //       memo[color] = insight;
-  //     }
-  //   });
-  //   return memo;
-  // }, [positionedInsights]);
 
   const insightKey = (i) =>
     JSON.stringify({
@@ -86,7 +75,14 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
 
   // Create the density generator; bandwidth controls smoothing in pixels.
   const densityGenerator = useMemo(() => {
-    const bandwidthPx = Math.max(8, rr * 0.08); // ~5% of min dimension
+    const count = collection?.insights?.length ?? 0
+    if (count <= 0) {
+      return () => []
+    }
+    const r = 1 / count
+    console.log("r: ", r)
+
+    const bandwidthPx = Math.min(width, height) * r * 6; // ~5% of min dimension
     return d3
       .contourDensity()
       .x((d) => scaleX(d.x))
@@ -95,7 +91,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
       .size([width, height])
       .bandwidth(bandwidthPx)
       .thresholds(10); // number of contour levels
-  }, [width, height, rr]);
+  }, [collection, width, height]);
 
   const contours = useMemo(() => densityGenerator(densityData), [densityData, densityGenerator]);
 
@@ -111,14 +107,14 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
       {/* =============================== */}
       {/* 1) DENSITY LAYER (behind nodes) */}
       {/* =============================== */}
-      <g aria-label="density-contours" opacity={0.35}>
+      <g aria-label="density-contours" opacity={0.4}>
         {contours.map((contour, i) => (
           <path
             key={`contour-${i}`}
             d={d3.geoPath()(contour)}
             fill={densityColor(contour.value)}
             stroke="#000000ff"
-            strokeWidth={1}   // this sets the edge width
+            strokeWidth={0}   // this sets the edge width
             strokeOpacity={0.3} // make edges slightly transparent
           />
         ))}
@@ -134,7 +130,9 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
 
         const cx = scaleX(insight.x);
         const cy = scaleY(insight.y);
-        const r = Math.min(width, height) * 0.04 ; // larger for largest insight
+
+        const N = collection?.insights?.length || 1;
+        const r = Math.min(width, height) * (1 / N) ** 0.5 * 0.3;
 
         const fillColor = isSelected
           ? insight.color
