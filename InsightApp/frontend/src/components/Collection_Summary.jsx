@@ -5,6 +5,11 @@ import {
 } from "recharts";
 import * as d3 from "d3";
 
+// helper: restrict an interpolator to a subrange [t0, t1]
+function subInterpolator(interpolator, t0 = 0.3, t1 = 0.8) {
+  return t => interpolator(t0 + t * (t1 - t0));
+}
+
 function CollectionSummary({ insights, collections, width, height, onFilterSelected }) {
   // === 1️⃣ Score distribution ===
   const scoreData = useMemo(() => {
@@ -53,13 +58,19 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
     })).sort((a, b) => a.numTypes - b.numTypes);
   }, [collections]);
 
-  // Use schemeBlues (same as Voronoi)
+  // Voronoi-aligned: interpolateBlues with subrange 0.3–0.8 (continuous)
   const uniqueTypeCounts = Array.from(new Set(typeData.map(d => d.numTypes))).sort((a, b) => a - b);
-  const bluesSize = Math.max(3, Math.min(9, uniqueTypeCounts.length || 3));
-  const blues = d3.schemeBlues[bluesSize];
-  const typeColorScale = d3.scaleOrdinal()
-    .domain(uniqueTypeCounts)
-    .range(blues.slice(blues.length - uniqueTypeCounts.length));
+  const typeExtent = d3.extent(uniqueTypeCounts);
+  const typeDomain =
+    typeExtent[0] === typeExtent[1]
+      ? [typeExtent[0] - 1, typeExtent[1] + 1]
+      : typeExtent;
+
+  const typeInterpolator = subInterpolator(d3.interpolateBlues, 0.05, 0.6);
+  const typeColorScale = d3.scaleSequential(typeInterpolator)
+    .domain(typeDomain)
+    .clamp(true);
+
 
   // === 3️⃣ Filter count ===
   const filterCountData = useMemo(() => {
@@ -71,17 +82,16 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
       counter[filterCount] = (counter[filterCount] ?? 0) + 1;
     });
 
-    const uniqueFilterCounts = Array.from(
-      new Set(Object.keys(counter).map(Number))
-    ).sort((a, b) => a - b);
+    const uniqueFilterCounts = Array.from(new Set(Object.keys(counter).map(Number))).sort((a, b) => a - b);
+    const filterExtent = d3.extent(uniqueFilterCounts);
+    const filterDomain =
+      filterExtent[0] === filterExtent[1]
+        ? [filterExtent[0] - 1, filterExtent[1] + 1]
+        : filterExtent;
 
-
-    // Use schemeReds (same as polygons)
-    const redsSize = Math.max(3, Math.min(9, uniqueFilterCounts.length || 3));
-    const reds = d3.schemeReds[redsSize];
-    const colorScale = d3.scaleOrdinal()
-      .domain(uniqueFilterCounts)
-      .range(reds.slice(reds.length - uniqueFilterCounts.length));
+    // Polygon-aligned: interpolateReds with subrange 0.3–0.8 (continuous)
+    const redsSub = subInterpolator(d3.interpolateReds, 0.05, 0.6);
+    const colorScale = d3.scaleSequential(redsSub).domain(filterDomain).clamp(true);
 
     return uniqueFilterCounts.map(filterCount => ({
       filterCount,

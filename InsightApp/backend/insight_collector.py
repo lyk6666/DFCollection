@@ -1,11 +1,37 @@
 from collections import defaultdict
-from config import (
-    MIN_RADIUS, MAX_RADIUS, EDGE_BUFFER
-)
 import numpy as np
 from sklearn.manifold import MDS
 import math
 from sklearn.preprocessing import MinMaxScaler
+from config import R_BETA
+import config  # <-- add this import
+
+EDGE_BUFFER = 0.01
+
+# --- dynamic radius helpers (depend on current categorical selection) ---
+
+def _num_categories():
+    """
+    Return count of categorical columns currently configured in config.
+    Falls back to 1 so min<max even before columns are set.
+    """
+    try:
+        cats = getattr(config, "CATEGORICAL_COLUMNS", None) or []
+        n = len(cats)
+        return n if n > 0 else 1
+    except Exception:
+        return 1
+
+def _radius_bounds():
+    """
+    Compute (min_radius, max_radius) from R_BETA and N = #categorical columns.
+    Adjust to your taste; guarantees max > min even when N == 1.
+    """
+    n = _num_categories()      
+    max_r = 0.5 / n * R_BETA
+    min_r = max_r * 0.4
+    return min_r, max_r
+
 
 def group_insights(insights):
 
@@ -176,19 +202,16 @@ def compute_mds_positions(similarities, num_collections):
 
     return [{"x": float(xi), "y": float(yi)} for xi, yi in zip(x_norm, y_norm)]
 
-def avoid_overlap(positions, scores, padding=0.01):
-    from sklearn.preprocessing import MinMaxScaler
-    import math
-    import numpy as np
+def avoid_overlap(positions, scores, padding=0):
 
     edge_buffer = EDGE_BUFFER
 
-    size_scale = MinMaxScaler(feature_range=(MIN_RADIUS, MAX_RADIUS))
+    min_r, max_r = _radius_bounds()
+    size_scale = MinMaxScaler(feature_range=(min_r, max_r))
     radii = size_scale.fit_transform(np.array(scores).reshape(-1, 1)).flatten()
 
     updated = [{"x": p["x"], "y": p["y"], "r": r} for p, r in zip(positions, radii)]
 
-    # 🔧 Initial clamping to prevent any starting violations
     for p in updated:
         p["x"] = min(max(edge_buffer + p["r"], p["x"]), 1.0 - edge_buffer - p["r"])
         p["y"] = min(max(edge_buffer + p["r"], p["y"]), 1.0 - edge_buffer - p["r"])
