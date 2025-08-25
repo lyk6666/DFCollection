@@ -252,6 +252,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
   const [valueSequences, setValueSequences] = useState({});
   const [polygonSections, setPolygonSections] = useState(null);
+  const [highlightedSegId, setHighlightedSegId] = useState(null);
 
   // Darken a hex color toward black by factor (0..1)
   function darkenHex(hex, factor = 0.6) {
@@ -398,16 +399,22 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
         {leafSegments.map(seg => {
           const count = seg.insights?.length || 0;
           const ratio = count / maxInsightCount;
-          const fillColor = count? interpolateColor(ratio, [200, 200, 200], [0, 0, 0]) : "white";
+          const baseFill = count ? interpolateColor(ratio, [200, 200, 200], [0, 0, 0]) : "white";
+
+          const isHighlighted = seg.id === highlightedSegId;
+
+          // optional: use a blue-ish highlight aligned with Voronoi palette (0.3–0.8 slice)
+          const highlightFill = d3.interpolateReds(0.5); // pick any t in [0.3,0.8]
 
           return (
             <polygon
               key={seg.id}
               points={seg.vertices.map(([x, y]) => `${x},${y}`).join(" ")}
-              fill={fillColor}
+              fill={isHighlighted ? highlightFill : baseFill}
               stroke="#aaa"
               strokeWidth={0.5}
               opacity={0.25}
+              pointerEvents="none" // keep clicks on the circles, not the polygon
             />
           );
         })}
@@ -441,6 +448,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
                     strokeWidth={0.5}
                     style={{ cursor: "pointer" }}
                     onClick={() => {
+                      setHighlightedSegId(seg.id);  // <-- no toggle
                       onInsightClick?.(insight)
                       console.log("Clicked insight in Polygon:", insight);
                     }}
