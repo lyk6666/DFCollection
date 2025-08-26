@@ -55,7 +55,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     const YaxisOffset = localChartW * 0.1
 
     // fonts/margins proportional to local panel
-    const tickFont       = Math.max(8, Math.min(localChartW * 0.02, localChartH * 0.06));
+    const tickFont       = Math.max(3, Math.min(localChartW * 0.02, localChartH * 0.06));
     const axisLabelFont  = Math.max(4, localChartH * 0.04);
     const commonMargins  = { top: 0, right: width * 0.02, left: -width * 0.02, bottom: 0 };
     const TCMargins = {top: 0, right: -width * 0.015, left: -width * 0.015, bottom: 0}
