@@ -60,7 +60,7 @@ function CollectionVoronoi({
     if (!valueSequences) return [];
     return Object.keys(valueSequences).sort();
   }, [valueSequences]);
-
+  
   function toggleCol(col) {
     setSelectedCols(prev => prev.includes(col)
       ? prev.filter(c => c !== col)
@@ -257,7 +257,8 @@ function CollectionVoronoi({
 
       const finalColor = match ? color : "#ccc";
 
-      const scaledRadius = collection.position.r * Math.min(squareHeight, squareWidth) * 0.6;
+      const scaledRadius = collection.position.r * Math.min(squareHeight, squareWidth) * 0.8;
+      
       const scaledX = collection.position.x * squareWidth;
       const scaledY = collection.position.y * squareHeight;
 
@@ -313,7 +314,7 @@ function CollectionVoronoi({
     data.forEach((collection) => {
       if (!collection || !collection.position) return;
 
-      const scaledRadius = (collection.position.r ?? 0.04) * 300;
+      const scaledRadius = (collection.position.r ?? 0.04) * 200;
       const scaledX = collection.position.x * squareWidth;
       const scaledY = collection.position.y * squareHeight;
 
