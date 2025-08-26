@@ -401,7 +401,11 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
           const ratio = count / maxInsightCount;
           const baseFill = count ? interpolateColor(ratio, [200, 200, 200], [0, 0, 0]) : "white";
 
-          const isHighlighted = seg.id === highlightedSegId;
+          const isSelectedInsightInSeg = selectedInsight && seg.insights?.some(
+            i => insightKey(i) === insightKey(selectedInsight)
+          );
+
+          const isHighlighted = seg.id === highlightedSegId || isSelectedInsightInSeg;
 
           // optional: use a blue-ish highlight aligned with Voronoi palette (0.3–0.8 slice)
           const highlightFill = d3.interpolateReds(0.5); // pick any t in [0.3,0.8]
@@ -448,7 +452,6 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
                     strokeWidth={0.5}
                     style={{ cursor: "pointer" }}
                     onClick={() => {
-                      setHighlightedSegId(seg.id);  // <-- no toggle
                       onInsightClick?.(insight)
                       console.log("Clicked insight in Polygon:", insight);
                     }}
