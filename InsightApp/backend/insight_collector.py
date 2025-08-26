@@ -28,7 +28,7 @@ def _radius_bounds():
     Adjust to your taste; guarantees max > min even when N == 1.
     """
     n = _num_categories()      
-    max_r = 0.5 / n * R_BETA
+    max_r = 0.4 / n * R_BETA
     min_r = max_r * 0.4
     return min_r, max_r
 
