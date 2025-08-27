@@ -329,6 +329,7 @@ def compute_insight_positions(insights, intra_mat, inter_mat, seed=42):
             "breakdown": ins.get("breakdown"),
             "subspace": ins.get("subspace"),
             "modified_dataset": ins.get("modified_dataset"),
+            "significance": ins.get("significance"),
             "group": group,
             "color": color,
         })

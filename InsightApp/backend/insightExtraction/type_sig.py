@@ -77,16 +77,23 @@ def test_evenness(values, eps=1e-12):
     if n < max(2, MINI_DATASET):
         return 0.0
 
-    mu = np.nanmean(x)
-    if not np.isfinite(mu) or abs(mu) < eps:
+    # Entropy needs nonnegative mass; clamp tiny negatives and remove NaNs
+    x = np.maximum(x, 0.0)
+    total = float(np.sum(x))
+    if not np.isfinite(total) or total <= eps:
         return 0.0
 
-    s = np.nanstd(x, ddof=0)
-    if not np.isfinite(s):
+    # Probabilities
+    p = x / total
+
+    # Normalized Shannon entropy (0 = perfectly uneven, 1 = perfectly uniform)
+    H = -np.sum(p * np.log(p + eps))          # natural log
+    H_max = np.log(n)                          # maximum entropy at uniform distribution
+
+    if not np.isfinite(H_max) or H_max <= eps:
         return 0.0
 
-    cv = s / abs(mu)
-    score = 1.0 - cv
+    score = float(H / H_max)                   # in [0,1]
     return float(np.clip(score, 0.0, 1.0))
 
 def test_change_point(x, y, window_size=3):
@@ -238,7 +245,7 @@ def test_temporal_correlation(x, y):
     t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
     p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
     significance = 1 - p_value
-    return significance
+    return r, significance
 
 def test_correlation(measure1, measure2):
     x = np.array(measure1)
@@ -258,4 +265,4 @@ def test_correlation(measure1, measure2):
     t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
     p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
     significance = 1 - p_value
-    return significance
+    return r, significance

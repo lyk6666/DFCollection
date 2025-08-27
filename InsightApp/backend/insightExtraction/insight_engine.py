@@ -3,11 +3,10 @@ from itertools import combinations
 from config import (
     MINI_DATASET,
     COMPOUND_MINI_DATASET,
-    UNIFORMITY_THRESHOLD,
     THRESHOLD_SIG
 )
 
-from type_sig import (
+from insightExtraction.type_sig import (
     test_change_point,
     test_correlation,
     test_dominance,
@@ -19,6 +18,8 @@ from type_sig import (
 )
 import config
 import numpy as np
+
+from insightExtraction.fast_detection import evaluate_type_fast
 
 
 def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_insights: int = None):
@@ -72,73 +73,34 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
         insight_type = None
         significance = 0.0
 
+        # 1) pick type quickly (evaluation)
         if breakdown not in ordinal_columns:
-            # Non-ordinal breakdown (single point patterns)
-            total = float(np.sum(vals))
-            if total <= 0:
-                return
-            sorted_vals = np.sort(vals)[::-1]
-            percents = sorted_vals / total * 100.0
-            top1 = percents[0]
-            top2 = percents[1] if percents.size > 1 else 0.0
-
-            # Rule 1: Dominance
-            if top1 > 60:
-                dom_sig = test_dominance(vals)
-                if dom_sig > THRESHOLD_SIG:
-                    insight_type = "Dominance"
-                    significance = dom_sig
-
-            # Rule 2: Outstanding Twin
-            if (insight_type is None) and (top1 > 30 and top2 > 30):
-                otwin_sig = test_outstanding_twin(vals)
-                if otwin_sig > THRESHOLD_SIG:
-                    insight_type = "Outstanding Twin"
-                    significance = otwin_sig
-
-            # Rule 3: Evenness
-            if insight_type is None:
-                evenness_sig = test_evenness(vals)
-                if evenness_sig > UNIFORMITY_THRESHOLD:
-                    insight_type = "Evenness"
-                    significance = evenness_sig
-
+            insight_type = evaluate_type_fast(vals, breakdown, ordinal_columns)
         else:
-            # Ordinal breakdown (single shape patterns)
             x = np.arange(len(vals))
-            if len(x) >= 3:
-                trend_sig, turbulence = test_trend(x, vals)
-            else:
-                trend_sig, turbulence = (0.0, np.inf)
+            insight_type = evaluate_type_fast(vals, breakdown, ordinal_columns, x_index=x)
 
-            if turbulence < 0.5:
-                # 1) Trend
-                if trend_sig > THRESHOLD_SIG:
-                    insight_type = "Trend"
-                    significance = trend_sig
-                else:
-                    # 2) Skewness
-                    _, skew_p, skew_sig = test_skewness(vals)
-                    if (skew_p is not None) and (skew_sig > THRESHOLD_SIG):
-                        insight_type = "Skewness"
-                        significance = skew_sig
-                    else:
-                        # 3) Change Point
-                        cp_sig, cp_idx, _ = test_change_point(x, vals, window_size=3)
-                        if cp_sig > THRESHOLD_SIG:
-                            insight_type = "Change Point"
-                            significance = cp_sig
-            else:
-                # Turbulent: Skewness -> Change Point
-                _, skew_p, skew_sig = test_skewness(vals)
-                if (skew_p is not None) and (skew_sig > THRESHOLD_SIG):
-                    insight_type = "Skewness"
-                    significance = skew_sig
-                else:
-                    cp_sig, cp_idx, _ = test_change_point(x, vals, window_size=3)
-                    if cp_sig > THRESHOLD_SIG:
-                        insight_type = "Change Point"
-                        significance = cp_sig
+        # 2) then compute significance ONLY for that type
+        if insight_type == "Dominance":
+            significance = test_dominance(vals)
+        elif insight_type == "Outstanding Twin":
+            significance = test_outstanding_twin(vals)
+        elif insight_type == "Evenness":
+            significance = test_evenness(vals)
+        elif insight_type == "Trend":
+            trend_sig, _ = test_trend(x, vals)  # you already have this
+            significance = trend_sig
+        elif insight_type == "Skewness":
+            _, _, skew_sig = test_skewness(vals)
+            significance = 0.0 if skew_sig is None else skew_sig
+        elif insight_type == "Change Point":
+            cp_sig, _, _ = test_change_point(x, vals, window_size=3)
+            significance = cp_sig
+        else:
+            significance = 0.0
+
+        if significance < THRESHOLD_SIG:
+            return
 
         # Record single insight
         if insight_type:
@@ -149,6 +111,7 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
                 'measure': measure,  # single str
                 'type': insight_type,
                 'score': score,
+                'significance': significance,
                 'modified_dataset': grouped_df[[breakdown, measure]].copy()
             })
             insight_count += 1
@@ -173,13 +136,13 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
             return
 
         if breakdown in ordinal_columns:
-            corr_sig = test_temporal_correlation(v1[:min_len], v2[:min_len])
+            r, corr_sig = test_temporal_correlation(v1[:min_len], v2[:min_len])
             compound_type = "Temporal Correlation"
         else:
-            corr_sig = test_correlation(v1[:min_len], v2[:min_len])
+            r, corr_sig = test_correlation(v1[:min_len], v2[:min_len])
             compound_type = "Correlation"
 
-        if corr_sig > THRESHOLD_SIG:
+        if r > 0.8 and corr_sig > THRESHOLD_SIG:
             score = corr_sig * impact
             m1_, m2_ = tuple(sorted((m1, m2)))
             insights_set.append({
@@ -188,6 +151,7 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
                 'measure': (m1_, m2_),  # store as tuple (unordered)
                 'type': compound_type,
                 'score': score,
+                'significance': corr_sig,
                 'modified_dataset': grouped_df[[breakdown, m1_, m2_]].copy()
             })
             insight_count += 1

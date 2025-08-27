@@ -5,8 +5,7 @@ import pandas as pd
 # Base constants
 MINI_DATASET = 3
 COMPOUND_MINI_DATASET = 3
-UNIFORMITY_THRESHOLD = 0.90
-THRESHOLD_SIG = 0.95
+THRESHOLD_SIG = 0.8
 
 # Weights for similarity components (can be adjusted centrally)
 W_FILTER = 0.4

@@ -13,17 +13,17 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 # ==== Your domain modules (unchanged) ====
-from spilt_collection import split_collection_by_filters, get_value_sequences
-from polygon_split import recursive_polygon_split
-from insight_engine import generate_insights
-from insight_collector import (
+from polygonConstruction.spilt_collection import split_collection_by_filters, get_value_sequences
+from polygonConstruction.polygon_split import recursive_polygon_split
+from insightExtraction.insight_engine import generate_insights
+from insightCollection.insight_collector import (
     group_insights,
     compute_collection_similarities,
     compute_distance_matrix,
     compute_mds_positions,
     avoid_overlap,
 )
-from insight_categorical_similarity import (
+from insightSimilarity.insight_categorical_similarity import (
     intra_coupled_similarity,
     inter_coupled_similarity,
     compute_insight_positions,
