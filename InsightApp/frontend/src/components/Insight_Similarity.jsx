@@ -82,7 +82,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
     const r = 1 / count
     console.log("r: ", r)
 
-    const bandwidthPx = Math.min(Math.min(width, height) * r * 6, 60); // ~5% of min dimension
+    const bandwidthPx = Math.min(Math.min(width, height) * r * 14, 80); // ~5% of min dimension
     return d3
       .contourDensity()
       .x((d) => scaleX(d.x))
