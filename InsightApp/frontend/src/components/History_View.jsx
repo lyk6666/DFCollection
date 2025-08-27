@@ -23,12 +23,6 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     boxSizing: "border-box" // makes border part of width/height
   };
 
-  // simple, deterministic color palette for pies (kept in case of future use)
-  // const PIE_COLORS = [
-  //   "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
-  //   "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab"
-  // ];
-
   // --- Minimal slider (no controls). We keep a ref so the parent could scroll if ever needed.
   const sliderRef = useRef(null);
 
@@ -67,6 +61,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
       measure,
       modified_dataset = [],
       score,
+      significance
     } = insight;
 
     const data = Array.isArray(modified_dataset)
@@ -416,12 +411,13 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
         }}
       >
         <div><strong>Breakdown:</strong> {breakdown}</div>
-        <div><strong>Measure:</strong> {Array.isArray(measure) ? measure.join(", ") : measure}</div>
-        <div><strong>Score:</strong> {score?.toFixed?.(3)}</div>
-        <div>
+        {/* <div><strong>Measure:</strong> {Array.isArray(measure) ? measure.join(", ") : measure}</div> */}
+        <div><strong>Significance: </strong>{significance?.toFixed?.(6)}</div>
+        <div><strong>Score:</strong> {score?.toFixed?.(6)}</div>
+        {/* <div>
           <strong>Subspace:</strong>{" "}
           {"{" + Object.entries(subspace).filter(([_, v]) => v !== "*").map(([_, v]) => v).join(", ") + "}"}
-        </div>
+        </div> */}
       </div>
     );
 
