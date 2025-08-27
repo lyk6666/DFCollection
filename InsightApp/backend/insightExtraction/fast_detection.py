@@ -102,8 +102,6 @@ def quick_is_change_point(x, vals, w=3):
     n = len(v)
     if n < max(5, w + 1):  # need enough points for at least 2 window means
         return False
-    if w < 2:
-        w = 2
 
     # rolling mean over full series
     k = np.ones(w, dtype=float) / w
