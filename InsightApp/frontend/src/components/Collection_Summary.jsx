@@ -1,7 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line,
-  ComposedChart, PieChart, Pie, Cell, Legend, Area
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
 import * as d3 from "d3";
 
@@ -11,13 +10,25 @@ function subInterpolator(interpolator, t0 = 0.3, t1 = 0.8) {
 }
 
 function CollectionSummary({ insights, collections, width, height, onFilterSelected }) {
+  // =========================
+  // NEW: local selection state
+  // =========================
+  const [scoreSelection, setScoreSelection] = useState(null);     // {min, max} | null
+  const [typeSelection, setTypeSelection]   = useState(null);     // {value} | null
+  const [filterSelection, setFilterSelection] = useState(null);   // {count} | null
+
+  // Small helpers
+  const send = (payload) => onFilterSelected?.(payload);
+  const sameRange = (a, b) => a && b && a.min === b.min && a.max === b.max;
+  const sameVal = (a, b, key) => a && b && a[key] === b[key];
+
   // === 1️⃣ Score distribution ===
   const scoreData = useMemo(() => {
     if (!collections || collections.length === 0) return [];
 
     const scores = collections.map(c => c.total_score ?? 0);
     const minScore = 0;
-    const maxScore = Math.ceil(Math.max(...scores));
+    const maxScore = Math.ceil(Math.max(...scores, 0)); // guard against empty
     const binSize = 0.5;
 
     const bins = [];
@@ -53,7 +64,7 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
     });
 
     return Object.entries(counter).map(([numTypes, count]) => ({
-      numTypes,
+      numTypes: Number(numTypes),
       count
     })).sort((a, b) => a.numTypes - b.numTypes);
   }, [collections]);
@@ -70,7 +81,6 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
   const typeColorScale = d3.scaleSequential(typeInterpolator)
     .domain(typeDomain)
     .clamp(true);
-
 
   // === 3️⃣ Filter count ===
   const filterCountData = useMemo(() => {
@@ -101,32 +111,64 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
   }, [collections]);
 
   // === Dimensions ===
-  const chartWidth = width / 3;                      // split 3 charts horizontally
-  const headingHeight = height * 0.08;               // reserve 12% height for heading
-  const chartHeight = height - headingHeight;        // remaining height for chart
-  const fontSize = height * 0.04;                    // font size ~6% of container height
-  const barSize = Math.max(5, chartWidth * 0.15);    // scale bar size
-  
-  
+  const chartWidth = width / 3;
+  const headingHeight = height * 0.08;
+  const chartHeight = height - headingHeight;
+  const fontSize = height * 0.04;
+  const barSize = Math.max(5, chartWidth * 0.15);
+
+  // =========================
+  // NEW: click handlers (toggle)
+  // =========================
+  const handleScoreClick = (d) => {
+    const next = { type: "score", min: d.binStart, max: d.binEnd };
+    if (sameRange(scoreSelection, next)) {
+      setScoreSelection(null);
+      send(null); // toggle OFF
+    } else {
+      setScoreSelection(next);
+      send(next); // toggle ON
+    }
+  };
+
+  const handleTypeClick = (d) => {
+    const next = { type: "type_count", value: Number(d.numTypes) };
+    if (sameVal(typeSelection, next, "value")) {
+      setTypeSelection(null);
+      send(null);
+    } else {
+      setTypeSelection(next);
+      send(next);
+    }
+  };
+
+  const handleFilterClick = (d) => {
+    const next = { type: "filter_count", count: d.filterCount };
+    if (sameVal(filterSelection, next, "count")) {
+      setFilterSelection(null);
+      send(null);
+    } else {
+      setFilterSelection(next);
+      send(next);
+    }
+  };
+
+  // (Optional) tiny visual cue for selected bars/slices
+  const isScoreSelected = (d) => scoreSelection && d.binStart === scoreSelection.min && d.binEnd === scoreSelection.max;
+  const isTypeSelected = (d) => typeSelection && Number(d.numTypes) === typeSelection.value;
+  const isFilterSelected = (d) => filterSelection && d.filterCount === filterSelection.count;
 
   return (
     <div style={{ width, height, display: "flex", flexDirection: "row", overflow: "hidden" }}>
-      
       {/* === Score Distribution with Line === */}
       <div style={{ width: chartWidth, height: "100%", backgroundColor: "white", border: "0.5px solid #ccc" }}>
         <h4 style={{ color: "grey", textAlign: "center", fontSize }}>Score Distribution</h4>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart
             data={scoreData}
-            margin={{
-              top: 0,
-              right: width * 0.02,
-              bottom: height * 0.02,
-              left: -width * 0.07
-              
-            }}
+            margin={{ top: 0, right: width * 0.02, bottom: height * 0.02, left: -width * 0.07 }}
             barCategoryGap="0%"
-            barGap={0}            
+            barGap={0}
           >
             <CartesianGrid stroke="#f5f5f5" />
             <XAxis
@@ -144,16 +186,22 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
             <Bar
               dataKey="count"
               fill="#a5a5a5ff"
-              fillOpacity={0.8}
-              onClick={(data) => {
-                onFilterSelected({ type: "score", min: data.binStart, max: data.binEnd });
-              }}
-            />
+              onClick={handleScoreClick}
+            >
+              {scoreData.map((d, i) => (
+                <Cell
+                  key={`s-${i}`}
+                  fill="#a5a5a5ff"
+                  fillOpacity={isScoreSelected(d) ? 1 : 0.8}
+                  stroke={isScoreSelected(d) ? "#333" : "none"}
+                  strokeWidth={isScoreSelected(d) ? 0.8 : 0}
+                  cursor="pointer"
+                />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
-
       </div>
-
 
       {/* === Type Variety === */}
       <div style={{ width: chartWidth, height: "100%", backgroundColor: "white", border: "0.5px solid #ccc" }}>
@@ -167,18 +215,17 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
             <Bar
               dataKey="count"
               barSize={barSize}
-              onClick={(data) => {
-                onFilterSelected({ type: "type_count", value: data.numTypes });
-              }}
-              fillOpacity={1}
+              onClick={handleTypeClick}
             >
               {typeData.map((entry, index) => (
-                <Cell 
+                <Cell
                   key={`cell-${index}`}
                   fill={typeColorScale(entry.numTypes)}
-                  stroke="#333"          // 🔹 dark stroke border
-                  strokeWidth={0.2}        // 🔹 thickness
-                   />
+                  stroke={isTypeSelected(entry) ? "#333" : "#333"}
+                  strokeWidth={isTypeSelected(entry) ? 1.2 : 0.2}
+                  fillOpacity={isTypeSelected(entry) ? 1 : 0.9}
+                  cursor="pointer"
+                />
               ))}
             </Bar>
           </BarChart>
@@ -201,17 +248,18 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
               labelLine={false}
               label={({ cx, cy, midAngle, outerRadius, percent, index }) => {
                 const RADIAN = Math.PI / 180;
-                const radius = outerRadius * 0.8; // push label slightly outside
+                const radius = outerRadius * 0.8;
                 const x = cx + radius * Math.cos(-midAngle * RADIAN);
                 const y = cy + radius * Math.sin(-midAngle * RADIAN);
                 const value = filterCountData[index];
+                if (!value) return null;
 
                 return (
                   <text
                     x={x}
                     y={y}
                     fill="#333"
-                    textAnchor="middle" // centered label
+                    textAnchor="middle"
                     dominantBaseline="central"
                     fontSize={width * 0.015}
                   >
@@ -219,18 +267,22 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
                   </text>
                 );
               }}
-              onClick={(data) => {
-                onFilterSelected?.({ type: "filter_count", count: data.filterCount });
-              }}
+              onClick={handleFilterClick}
             >
               {filterCountData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.color}
+                  stroke={isFilterSelected(entry) ? "#333" : "none"}
+                  strokeWidth={isFilterSelected(entry) ? 1.2 : 0}
+                  opacity={isFilterSelected(entry) ? 1 : 0.95}
+                  cursor="pointer"
+                />
               ))}
             </Pie>
           </PieChart>
         </ResponsiveContainer>
       </div>
-
     </div>
   );
 }
