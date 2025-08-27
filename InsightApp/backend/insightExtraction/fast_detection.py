@@ -97,27 +97,32 @@ def quick_is_skewness(vals):
     cms = _center_of_mass_shift(v)
     return cms >= 0.15
 
-def quick_is_change_point(x, vals):
-    # Fast CUSUM-style check (no stats): big swing in cumulative dev
-    v = _safe(vals); t = _safe(x)
-    n = min(len(v), len(t))
-    if n < 5: return False
-    v = v[:n]
-    mu = np.mean(v); sd = np.std(v, ddof=0) + _EPS
-    cusum = np.cumsum(v - mu) / sd
-    # normalized swing: max |cusum| relative to length
-    swing = np.max(np.abs(cusum)) / np.sqrt(n)
-    # also look for largest rolling-mean jump as corroboration
-    w = 3 if n >= 7 else 2
-    left = np.convolve(v, np.ones(w)/w, mode='valid')[:-1]
-    right = np.convolve(v, np.ones(w)/w, mode='valid')[1:]
-    if len(left) == 0 or len(right) == 0:
-        jump_z = 0.0
-    else:
-        jump = np.max(np.abs(right - left))
-        jump_z = jump / (np.std(v, ddof=0) + _EPS)
-    # Heuristic decision
-    return (swing >= 0.90) or (jump_z >= 1.0)
+def quick_is_change_point(x, vals, w=3):
+    v = _safe(vals)
+    n = len(v)
+    if n < max(5, w + 1):  # need enough points for at least 2 window means
+        return False
+    if w < 2:
+        w = 2
+
+    # rolling mean over full series
+    k = np.ones(w, dtype=float) / w
+    roll = np.convolve(v, k, mode='valid')              # length m = n - w + 1
+    m = len(roll)
+    if m < 2:
+        return False
+
+    # adjacent mean gaps
+    gaps = np.abs(np.diff(roll))                        # length m-1
+
+    if gaps.size:
+        q1, q3 = np.percentile(gaps, [25, 75])
+        iqr = q3 - q1
+        fence = q3 + 1.5 * (iqr + _EPS)
+        if np.max(gaps) > fence:
+            return True
+
+    return False
 
 def evaluate_type_fast(vals, breakdown, ordinal_columns, x_index=None):
     v = _safe(vals)
