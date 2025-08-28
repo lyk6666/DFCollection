@@ -187,6 +187,7 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
               dataKey="count"
               fill="#a5a5a5ff"
               onClick={handleScoreClick}
+              isAnimationActive={false}
             >
               {scoreData.map((d, i) => (
                 <Cell
@@ -216,6 +217,7 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
               dataKey="count"
               barSize={barSize}
               onClick={handleTypeClick}
+              isAnimationActive={false}
             >
               {typeData.map((entry, index) => (
                 <Cell
@@ -246,6 +248,7 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
               cy="45%"
               outerRadius="80%"
               labelLine={false}
+              isAnimationActive={false}
               label={({ cx, cy, midAngle, outerRadius, percent, index }) => {
                 const RADIAN = Math.PI / 180;
                 const radius = outerRadius * 0.8;
