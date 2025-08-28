@@ -232,16 +232,16 @@ def test_temporal_correlation(x, y):
     y = np.array(y)
     n = len(x)
     if n != len(y) or n < MINI_DATASET:
-        return 0.0
+        return 0, 0
     x_mean = np.mean(x)
     y_mean = np.mean(y)
     numerator = np.sum((x - x_mean) * (y - y_mean))
     denominator = np.sqrt(np.sum((x - x_mean) ** 2) * np.sum((y - y_mean) ** 2))
     if denominator == 0 or np.isnan(denominator):
-        return 0.0
+        return 0, 0
     r = numerator / denominator
     if abs(r) == 1 or np.isnan(r):
-        return 0.0
+        return 0, 0
     t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
     p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
     significance = 1 - p_value
@@ -252,16 +252,16 @@ def test_correlation(measure1, measure2):
     y = np.array(measure2)
     n = len(x)
     if n != len(y) or n < MINI_DATASET:
-        return 0.0
+        return 0, 0
     x_mean = np.mean(x)
     y_mean = np.mean(y)
     numerator = np.sum((x - x_mean) * (y - y_mean))
     denominator = np.sqrt(np.sum((x - x_mean) ** 2) * np.sum((y - y_mean) ** 2))
     if denominator == 0 or np.isnan(denominator):
-        return 0.0
+        return 0, 0
     r = numerator / denominator
     if abs(r) == 1 or np.isnan(r):
-        return 0.0
+        return 0, 0
     t_stat = r * np.sqrt((n - 2) / (1 - r ** 2))
     p_value = 2 * (1 - t.cdf(abs(t_stat), df=n-2))
     significance = 1 - p_value
