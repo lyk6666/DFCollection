@@ -60,7 +60,7 @@ function CollectionVoronoi({
     if (!valueSequences) return [];
     return Object.keys(valueSequences).sort();
   }, [valueSequences]);
-  
+
   function toggleCol(col) {
     setSelectedCols(prev => prev.includes(col)
       ? prev.filter(c => c !== col)
@@ -351,9 +351,8 @@ function CollectionVoronoi({
       overlayGroup.append("circle")
         .attr("cx", cx).attr("cy", cy).attr("r", ringR)
         .attr("fill", "none")
-        .attr("stroke", "#949494ff")
+        .attr("stroke", "#616161ff")
         .attr("stroke-width", 1.2)
-        .attr("stroke-dasharray", "4 3")
         .attr("pointer-events", "none");
 
       // small badge with sequence number (top-right)
@@ -368,10 +367,11 @@ function CollectionVoronoi({
         .attr("y", badgeY - bh / 2)
         .attr("width", bw).attr("height", bh)
         .attr("rx", br).attr("ry", br)
-        .attr("fill", "#a1a1a1ff")
-        .attr("stroke", "#707070ff")
+        .attr("fill", "#b1b1b1ff")
+        .attr("stroke", "#c9c9c9ff")
         .attr("stroke-width", 0.8)
-        .attr("pointer-events", "none");
+        .attr("pointer-events", "none")
+        .attr("opacity", 0.8);
 
       overlayGroup.append("text")
         .attr("x", badgeX).attr("y", badgeY + 0.5)
