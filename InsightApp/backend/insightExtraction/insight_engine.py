@@ -142,7 +142,7 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
             r, corr_sig = test_correlation(v1[:min_len], v2[:min_len])
             compound_type = "Correlation"
 
-        if r > 0.8 and corr_sig > THRESHOLD_SIG:
+        if abs(r) > 0.85:
             score = corr_sig * impact
             m1_, m2_ = tuple(sorted((m1, m2)))
             insights_set.append({
