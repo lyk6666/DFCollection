@@ -251,7 +251,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                 <Line
                   type="monotone"
                   dataKey={measureKey}
-                  stroke="#4682B4"
+                  stroke="#D4A017"
                   strokeWidth={2}
                   dot={{ r: 0 }}
                   activeDot={{ r: Math.max(3, localChartW * 0.008) }}
@@ -269,8 +269,8 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                 {/* optional grid if you like: <CartesianGrid strokeDasharray="3 3" /> */}
                 <defs>
                   <linearGradient id="skewFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4682B4" stopOpacity={0.75} />
-                    <stop offset="100%" stopColor="#4682B4" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor="#D4A017" stopOpacity={0.75} />
+                    <stop offset="100%" stopColor="#D4A017" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <XAxis
@@ -287,7 +287,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                 <Area
                   type="monotone"
                   dataKey={measureKey}
-                  stroke="#4682B4"
+                  stroke="#D4A017"
                   strokeWidth={1}
                   strokeOpacity={0.75}
                   fill="url(#skewFill)"
@@ -345,7 +345,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   yAxisId="left"
                   type="monotone"
                   dataKey={xKey}
-                  stroke="#4682B4"
+                  stroke="#2E7D32"
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
@@ -354,7 +354,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   yAxisId="right"
                   type="monotone"
                   dataKey={yKey}
-                  stroke="#82ca9d"
+                  stroke="#6be46fff"
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
@@ -388,7 +388,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   label={{ value: yKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                <Scatter data={data} fill="#4682B4" isAnimationActive={false}/>
+                <Scatter data={data} fill="#2E7D32" isAnimationActive={false}/>
               </ScatterChart>
             </ResponsiveContainer>
           );
