@@ -247,6 +247,28 @@ function getValueLabelsFromSequence(sequence) {
   return sequence;
 }
 
+function getHighlightIndexForSide(insight, attr, valueSequences) {
+  if (!insight || !attr) return null;
+
+  // Get the ordered labels the side uses
+  const labels = getValueLabelsFromSequence(valueSequences?.[attr]);
+  if (!Array.isArray(labels) || labels.length === 0) return null;
+
+  // Try to read the attribute value from common insight shapes
+  // e.g. insight.subspace["Country"] === "US"
+  const raw =
+    (insight.subspace && (insight.subspace[attr] ?? insight.subspace[attr?.toString?.()])) ??
+    (insight.breakdown && (insight.breakdown[attr] ?? insight.breakdown[attr?.toString?.()])) ??
+    insight[attr];
+
+  if (raw == null) return null;
+
+  // Normalize to a scalar string for comparison
+  const val = Array.isArray(raw) ? raw[0] : raw;
+  const idx = labels.findIndex((lab) => String(lab) === String(val));
+
+  return idx >= 0 ? idx : null;
+}
 
 function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder, sectionData, onInsightClick, selectedInsight }) {
 
@@ -294,6 +316,13 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
     const counts = aggregateInsightCountsByLevel(sectionData);
     setInsightCounts(counts);
   }, [sectionData]);
+
+  const getSideHighlightIndex = useMemo(() => {
+    return (sideIndex) => {
+      const attr = filterOrder?.[sideIndex];
+      return getHighlightIndexForSide(selectedInsight, attr, valueSequences);
+    };
+  }, [selectedInsight, filterOrder, valueSequences]);
 
   // Memoized polygon vertex points
   const points = useMemo(() => {
@@ -344,6 +373,14 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
     const result = aggregateInsightCountsByLevel(sectionData);
     console.log("Insight counts by level and index-in-level:", result);
   }, [sectionData]);
+
+  // Inside InsightPolygon component
+  useEffect(() => {
+    // Reset selectedInsight when a new collection is loaded
+    if (selectedInsight) {
+      onInsightClick?.(null);  // clear externally if parent manages state
+    }
+  }, [collection]);
 
   const leafSegments = polygonSections?.segments
     ? flattenSections(polygonSections.segments).filter(seg => seg._isLeaf)
@@ -581,61 +618,90 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
               key={`bar-${i}`}
               transform={`translate(${offsetX}, ${offsetY}) rotate(${angleDeg})`}
             >
-              {/* Bars */}
-              {data.map((d, index) => {
-                const height = chartHeight - yScale(d.value);
-                return (
-                  <g key={index}>
-                    {/* Bar */}
-                    <rect
-                      x={index * (barWidth + barPadding)}
-                      y={yScale(d.value)}
-                      width={barWidth}
-                      height={height}
-                      fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
-                      // stroke="grey"
-                      // strokeWidth={0.5}
-                      rx={1} // horizontal corner radius
-                      ry={1} // vertical corner radius (optional; if omitted, equals rx)
-                    />
+              {(() => {
+                // Which bar on THIS SIDE should be highlighted for the selected insight?
+                const hi = getSideHighlightIndex(i); // i is the current side index from the outer map
 
-                    <text
-                      x={index * (barWidth + barPadding) + barWidth / 2}
-                      y={yScale(d.value) - chartHeight * 0.3 * flipLabel}
-                      fontSize={length * 0.03}
-                      transform={flipLabel === -1
-                        ? `rotate(180, ${index * (barWidth + barPadding) + barWidth / 2}, ${yScale(d.value) + chartHeight * 0.08 * flipLabel})`
-                        : undefined
-                      }
-                      fill="#c0c0c0ff"
-                      textAnchor="middle"
-                      dominantBaseline="baseline"
-                    >
-                      {d.value}
-                    </text>
+                return data.map((d, index) => {
+                  const height = chartHeight - yScale(d.value);
 
-                    {/* Value sequence label above bar */}
-                    <text
-                      x={index * (barWidth + barPadding) + barWidth / 2}
-                      y={yScale(d.value) - chartHeight * 0.1 * flipLabel}
-                      fontSize={getFittedFontSize(
-                        valueLabels?.[index] ?? `L${index + 1}`,
-                        Math.min(barWidth * 1, 9),
-                        chartWidth / data.length
-                      )}
-                      transform={flipLabel === -1
-                        ? `rotate(180, ${index * (barWidth + barPadding) + barWidth / 2}, ${yScale(d.value) + chartHeight * 0.06 * flipLabel})`
-                        : undefined
-                      }
-                      fill={lightenRGBColor(filterColors[i % filterColors.length], index, data.length - 1)}
-                      textAnchor="middle"
-                      dominantBaseline="baseline"
-                    >
-                      {valueLabels?.[index] ?? `L${index + 1}`}
-                    </text>
-                  </g>
-                );
-              })}
+                  // Visual emphasis
+                  const isHi = hi != null && hi === index;
+                  const barFill = lightenRGBColor(
+                    filterColors[i % filterColors.length],
+                    index,
+                    data.length - 1
+                  );
+                  const baseOpacity = selectedInsight ? (isHi ? 1 : 0.5) : 1;
+
+                  return (
+                    <g key={index}>
+                      {/* Bar */}
+                      <rect
+                        x={index * (barWidth + barPadding)}
+                        y={yScale(d.value)}
+                        width={barWidth}
+                        height={height}
+                        fill={barFill}
+                        opacity={baseOpacity}
+                        rx={1}
+                        ry={1}
+                        stroke={isHi ? "#000" : undefined}
+                        strokeWidth={isHi ? 1 : undefined}
+                      />
+
+                      {/* Value number above bar */}
+                      <text
+                        x={index * (barWidth + barPadding) + barWidth / 2}
+                        y={yScale(d.value) - chartHeight * 0.3 * flipLabel}
+                        fontSize={length * 0.03}
+                        transform={
+                          flipLabel === -1
+                            ? `rotate(180, ${
+                                index * (barWidth + barPadding) + barWidth / 2
+                              }, ${yScale(d.value) + chartHeight * 0.08 * flipLabel})`
+                            : undefined
+                        }
+                        fill={isHi ? "#111" : "#c0c0c0ff"}
+                        textAnchor="middle"
+                        dominantBaseline="baseline"
+                        fontWeight={isHi ? "bold" : "normal"}
+                        opacity={baseOpacity}
+                      >
+                        {d.value}
+                      </text>
+
+                      {/* Label (value sequence) */}
+                      <text
+                        x={index * (barWidth + barPadding) + barWidth / 2}
+                        y={yScale(d.value) - chartHeight * 0.1 * flipLabel}
+                        fontSize={getFittedFontSize(
+                          valueLabels?.[index] ?? `L${index + 1}`,
+                          Math.min(barWidth * 1, 9),
+                          chartWidth / data.length
+                        )}
+                        transform={
+                          flipLabel === -1
+                            ? `rotate(180, ${
+                                index * (barWidth + barPadding) + barWidth / 2
+                              }, ${yScale(d.value) + chartHeight * 0.06 * flipLabel})`
+                            : undefined
+                        }
+                        fill={isHi ? barFill : lightenRGBColor(barFill, 1, 1)}
+                        textAnchor="middle"
+                        dominantBaseline="baseline"
+                        fontWeight={isHi ? "bold" : "normal"}
+                        opacity={baseOpacity}
+                        style={isHi ? { textDecoration: "underline" } : undefined}
+                      >
+                        {valueLabels?.[index] ?? `L${index + 1}`}
+                      </text>
+
+                    </g>
+                  );
+                });
+              })()}
+
             </g>
           );
         })}
