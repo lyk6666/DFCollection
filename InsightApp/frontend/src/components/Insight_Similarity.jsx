@@ -82,7 +82,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
     const r = 1 / count
     console.log("r: ", r)
 
-    const bandwidthPx = Math.min(Math.min(width, height) * r * 14, 80); // ~5% of min dimension
+    const bandwidthPx = Math.min(Math.min(width, height) * r * 10, 60); // ~5% of min dimension
     return d3
       .contourDensity()
       .x((d) => scaleX(d.x))
@@ -90,7 +90,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
       .weight((d) => d.w)
       .size([width, height])
       .bandwidth(bandwidthPx)
-      .thresholds(10); // number of contour levels
+      .thresholds(15); // number of contour levels
   }, [collection, width, height]);
 
   const contours = useMemo(() => densityGenerator(densityData), [densityData, densityGenerator]);

@@ -6,14 +6,15 @@ const DEFAULT_API_BASE = "http://127.0.0.1:5000";
 
 /** ====== SHARED STYLES ====== */
 const baseButtonStyle = {
-  padding: "6px 8px",
   border: "1px solid #ccc",
   borderRadius: 2,
   background: "#fff",
   cursor: "pointer",
-  fontSize: 12,
+  fontSize: 14,
   color: "#111",
   boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+  width: '6vw',
+  height: '3vh'
 };
 
 const primaryButtonStyle = {
@@ -363,7 +364,7 @@ function CsvFilePicker({ onFile }) {
         style={subtleButtonStyle}
         aria-label="Choose CSV file"
       >
-        CSV file only
+        Choose CSV
       </button>
     </div>
   );

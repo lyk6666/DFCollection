@@ -187,7 +187,8 @@ function App() {
     if (!node) return;
 
     // Use display pixel ratio for “what I see is what I get”
-    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 2));
+    // const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 2));
+    const dpr = 4
 
     const dataUrl = await toPng(node, {
       pixelRatio: dpr,
