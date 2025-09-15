@@ -1,8 +1,58 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 
 /** ====== CONFIG ====== */
 // Change this to match your backend's IP/port
 const DEFAULT_API_BASE = "http://127.0.0.1:5000";
+
+/** ====== SHARED STYLES ====== */
+const baseButtonStyle = {
+  padding: "6px 8px",
+  border: "1px solid #ccc",
+  borderRadius: 2,
+  background: "#fff",
+  cursor: "pointer",
+  fontSize: 12,
+  color: "#111",
+  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+};
+
+const primaryButtonStyle = {
+  ...baseButtonStyle,
+  background: "#0ea5e9",
+  borderColor: "#0ea5e9",
+  color: "#fff",
+};
+
+const subtleButtonStyle = {
+  ...baseButtonStyle,
+  background: "#f9fafb",
+};
+
+const textInputStyle = {
+  width: "100%",
+  padding: "6px 8px",
+  border: "1px solid #ccc",
+  borderRadius: 2,
+  boxSizing: "border-box",
+  fontSize: 12,
+  background: "#fff",
+  color: "#111",
+};
+
+const checkboxStyle = {
+  width: 14,
+  height: 14,
+  cursor: "pointer",
+};
+
+const selectStyle = {
+  padding: "4px 8px",
+  fontSize: 12,
+  border: "1px solid #ccc",
+  borderRadius: 4,
+  background: "#fff",
+  color: "#111",
+};
 
 /** ====== API HELPERS (local to this file) ====== */
 async function uploadCsv(file, API_BASE) {
@@ -65,14 +115,12 @@ function DropdownChecklist({ label, options = [], selected = [], onChange = () =
         aria-expanded={open}
         aria-haspopup="listbox"
         style={{
+          ...baseButtonStyle,
           width: "100%",
-          padding: "1px 10px",
-          border: "1px solid #ccc",
-          background: "#fff",
-          cursor: "pointer",
+          padding: "6px 10px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
         }}
       >
         <span>
@@ -83,6 +131,7 @@ function DropdownChecklist({ label, options = [], selected = [], onChange = () =
 
       {open && (
         <div
+          role="listbox"
           style={{
             position: "absolute",
             top: "calc(100% + 4px)",
@@ -100,13 +149,7 @@ function DropdownChecklist({ label, options = [], selected = [], onChange = () =
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search..."
-            style={{
-              width: "100%",
-              padding: "6px 8px",
-              border: "none",
-              borderBottom: "1px solid #eee",
-              boxSizing: "border-box",
-            }}
+            style={{ ...textInputStyle, borderRadius: "6px 6px 0 0" }}
           />
           {filtered.map(({ value, note }) => (
             <label
@@ -123,13 +166,14 @@ function DropdownChecklist({ label, options = [], selected = [], onChange = () =
                 type="checkbox"
                 checked={selected.includes(value)}
                 onChange={() => toggleItem(value)}
+                style={checkboxStyle}
               />
               <span style={{ flex: 1, color: "#111", fontSize: 12 }}>{value}</span>
               {note && <em style={{ color: "#777", fontSize: 10 }}>({note})</em>}
             </label>
           ))}
           {filtered.length === 0 && (
-            <div style={{ padding: 8, color: "#777" }}>No results</div>
+            <div style={{ padding: 8, color: "#777", fontSize: 12 }}>No results</div>
           )}
         </div>
       )}
@@ -164,14 +208,12 @@ function MeasureDropdown({
 
   const toggleItem = (val) => {
     if (selected.includes(val)) {
-      // remove selection and its agg
       const nextSel = selected.filter((x) => x !== val);
       onSelectedChange(nextSel);
       const nextAggs = { ...measureAggs };
       delete nextAggs[val];
       onAggChange(nextAggs);
     } else {
-      // add selection and default agg SUM
       const nextSel = [...selected, val];
       onSelectedChange(nextSel);
       onAggChange({ ...measureAggs, [val]: measureAggs[val] || "SUM" });
@@ -190,14 +232,12 @@ function MeasureDropdown({
         aria-expanded={open}
         aria-haspopup="listbox"
         style={{
+          ...baseButtonStyle,
           width: "100%",
-          padding: "1px 10px",
-          border: "1px solid #ccc",
-          background: "#fff",
-          cursor: "pointer",
+          padding: "6px 10px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
         }}
       >
         <span>
@@ -208,6 +248,7 @@ function MeasureDropdown({
 
       {open && (
         <div
+          role="listbox"
           style={{
             position: "absolute",
             top: "calc(100% + 4px)",
@@ -225,13 +266,7 @@ function MeasureDropdown({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search..."
-            style={{
-              width: "100%",
-              padding: "6px 8px",
-              border: "none",
-              borderBottom: "1px solid #eee",
-              boxSizing: "border-box",
-            }}
+            style={{ ...textInputStyle, borderRadius: "6px 6px 0 0" }}
           />
 
           {filtered.map(({ value, note }) => {
@@ -252,23 +287,21 @@ function MeasureDropdown({
                   type="checkbox"
                   checked={checked}
                   onChange={() => toggleItem(value)}
+                  style={checkboxStyle}
                 />
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <span style={{ color: "#111", fontSize: 12 }}>{value}</span>
                   {note && <em style={{ color: "#777", fontSize: 10 }}>({note})</em>}
                 </div>
 
-                {/* Aggregation picker (enabled when checked) */}
                 <select
                   value={chosenAgg}
                   disabled={!checked}
                   onChange={(e) => handleAggChange(value, e.target.value)}
                   style={{
-                    padding: "2px 6px",
-                    fontSize: 12,
-                    border: "1px solid #ccc",
-                    borderRadius: 4,
+                    ...selectStyle,
                     background: checked ? "#fff" : "#f5f5f5",
+                    cursor: checked ? "pointer" : "not-allowed",
                   }}
                 >
                   {AGG_OPTIONS.map((opt) => (
@@ -280,10 +313,58 @@ function MeasureDropdown({
           })}
 
           {filtered.length === 0 && (
-            <div style={{ padding: 8, color: "#777" }}>No results</div>
+            <div style={{ padding: 8, color: "#777", fontSize: 12 }}>No results</div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** ====== CUSTOM FILE INPUT (HIDES NATIVE TEXT) ====== */
+function CsvFilePicker({ onFile }) {
+  const inputRef = useRef(null);
+
+  const handlePick = () => {
+    inputRef.current?.click();
+  };
+
+  const handleChange = (e) => {
+    const f = e.target.files?.[0] || null;
+    onFile?.(f);
+    // Clear the value so the same file can be re-selected if needed
+    e.target.value = "";
+  };
+
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      {/* Hidden native file input: NEVER shows filename or 'No file chosen' */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv"
+        onChange={handleChange}
+        style={{
+          // Fully visually hidden but still accessible via button
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0,0,0,0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      />
+      <button
+        type="button"
+        onClick={handlePick}
+        style={subtleButtonStyle}
+        aria-label="Choose CSV file"
+      >
+        CSV file only
+      </button>
     </div>
   );
 }
@@ -316,8 +397,6 @@ export default function UploadAndSelect({ apiBase = DEFAULT_API_BASE }) {
     setStatus("Uploading…");
     try {
       const data = await uploadCsv(file, apiBase);
-      console.log("Upload response:", data);
-
       const newColumns = data.columns || [];
       const newDtypes = data.dtypes || {};
       const newRows = data.rows || 0;
@@ -342,13 +421,13 @@ export default function UploadAndSelect({ apiBase = DEFAULT_API_BASE }) {
       setStatus(err.message || "Upload failed");
     } finally {
       setUploading(false);
+      setFile(null); // clear any reference to avoid implicit name display elsewhere
     }
   };
 
   const handleSubmitSelections = async () => {
     setStatus("Submitting selections…");
     try {
-      // Send both the list and the [col, agg] pairs
       const measure_aggs = numerical.map((col) => [col, measureAggs[col] || "SUM"]);
       const payload = { categorical, ordinal, numerical, measure_aggs };
       const resp = await sendSelections(payload, apiBase);
@@ -363,13 +442,18 @@ export default function UploadAndSelect({ apiBase = DEFAULT_API_BASE }) {
     <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
       {/* Upload */}
       <form onSubmit={handleUpload} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <input
-          type="file"
-          accept=".csv"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          style={{ maxWidth: 180 }}
-        />
-        <button type="submit" disabled={!file || uploading}>
+        {/* Custom CSV picker (no filename text shown) */}
+        <CsvFilePicker onFile={setFile} />
+
+        <button
+          type="submit"
+          disabled={!file || uploading}
+          style={{
+            ...primaryButtonStyle,
+            opacity: !file || uploading ? 0.6 : 1,
+            cursor: !file || uploading ? "not-allowed" : "pointer",
+          }}
+        >
           {uploading ? "Uploading…" : "Upload"}
         </button>
       </form>
@@ -397,11 +481,29 @@ export default function UploadAndSelect({ apiBase = DEFAULT_API_BASE }) {
             measureAggs={measureAggs}
             onAggChange={setMeasureAggs}
           />
-          <button type="button" onClick={handleSubmitSelections}>Submit</button>
+          <button
+            type="button"
+            onClick={handleSubmitSelections}
+            style={primaryButtonStyle}
+          >
+            Submit
+          </button>
         </>
       )}
 
-      <span style={{ flex: 1, marginLeft: 8, fontSize: 10, color: "#fff" }}>{status}</span>
+      <span
+        style={{
+          flex: 1,
+          marginLeft: 8,
+          fontSize: 12,
+          color: "#444",
+          minHeight: 18,
+          display: "inline-flex",
+          alignItems: "center",
+        }}
+      >
+        {status}
+      </span>
     </div>
   );
 }

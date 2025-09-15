@@ -61,6 +61,17 @@ function CollectionVoronoi({
     return Object.keys(valueSequences).sort();
   }, [valueSequences]);
 
+  const actionButtonStyle = {
+    padding: "6px 12px",
+    fontSize: 12,
+    border: "1px solid #ccc",
+    borderRadius: 6,
+    background: "#f9fafb",
+    cursor: "pointer",
+    color: "#111",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+  };
+
   function toggleCol(col) {
     setSelectedCols(prev => prev.includes(col)
       ? prev.filter(c => c !== col)
@@ -548,10 +559,10 @@ function CollectionVoronoi({
             marginRight: 12,
           }}
         >
-          <button onClick={applyCombo} style={{ padding: "4px 10px", fontSize: 12 }}>
+          <button onClick={applyCombo} style={actionButtonStyle}>
             Apply
           </button>
-          <button onClick={clearCombo} style={{ padding: "4px 10px", fontSize: 12 }}>
+          <button onClick={clearCombo} style={actionButtonStyle}>
             Clear
           </button>
         </div>

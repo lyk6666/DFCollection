@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useLayoutEffect, useRef, useCallback } from "react";
-import { toPng } from 'html-to-image';
+import React, { useEffect, useState, useLayoutEffect, useRef } from "react";
+import { toPng } from "html-to-image";
 
 import CollectionVoronoi from "./components/Collection_Voronoi";
 import CollectionSummary from "./components/Collection_Summary";
@@ -8,6 +8,27 @@ import InsightSimilarity from "./components/Insight_Similarity";
 import HistoryView from "./components/History_View";
 import InsightSummary from "./components/Insight_Summary";
 import UploadAndSelect from "./components/UploadAndSelect";
+
+// Invisible capture button beside titles
+function ShotButton({ onClick, title = "Save PNG shot" }) {
+  return (
+    <button
+      aria-label={title}
+      onClick={onClick}
+      style={{
+        position: "absolute",
+        right: "8px",
+        top: "6px",
+        width: "20px",
+        height: "20px",
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        opacity: 0, // Invisible as requested
+      }}
+    />
+  );
+}
 
 function useElementSize(ref) {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -20,7 +41,6 @@ function useElementSize(ref) {
     });
 
     observer.observe(ref.current);
-
     return () => observer.disconnect();
   }, [ref]);
 
@@ -28,6 +48,7 @@ function useElementSize(ref) {
 }
 
 function App() {
+  // ---------------- State ----------------
   const [collections, setCollections] = useState([]);
   const [valueSequence, setValueSequence] = useState({});
   const [selectedCollection, setSelectedCollection] = useState(null);
@@ -36,7 +57,8 @@ function App() {
   const [insights, setInsights] = useState([]);
   const [selectedOverviewFilter, setSelectedOverviewFilter] = useState([]);
   const [clickedInsight, setClickedInsight] = useState(null);
-    // 🔥 NEW: keep history in App (most-recent first)
+
+  // Keep history in App (most-recent first)
   const [history, setHistory] = useState(() => {
     try {
       const raw = localStorage.getItem("dfc_history");
@@ -47,16 +69,15 @@ function App() {
   });
 
   const handleFilterSelected = (filterInfo) => {
-    console.log("Selected filter from Overview:", filterInfo);
-    setSelectedOverviewFilter(filterInfo);  // <-- optional: store it for FullView
+    setSelectedOverviewFilter(filterInfo);
   };
 
-  // at top of App()
+  // ---------------- Backend (unchanged; data only) ----------------
   const API_BASE = "http://127.0.0.1:5000";
   const [backendStage, setBackendStage] = useState("idle"); // idle | processing | ready | error
   const [backendMsg, setBackendMsg] = useState("");
 
-  // poll status
+  // Poll status
   useEffect(() => {
     let timer;
     const poll = async () => {
@@ -74,32 +95,40 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-
   // insights
   useEffect(() => {
     if (backendStage !== "ready") return;
     fetch(`${API_BASE}/api/insights`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((r) => {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
       .then(setInsights)
-      .catch(err => console.error("Error fetching insights:", err));
+      .catch((err) => console.error("Error fetching insights:", err));
   }, [backendStage]);
 
   // collections
   useEffect(() => {
     if (backendStage !== "ready") return;
     fetch(`${API_BASE}/api/insight_collections`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((r) => {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
       .then(setCollections)
-      .catch(err => console.error("Error fetching insight collections:", err));
+      .catch((err) => console.error("Error fetching insight collections:", err));
   }, [backendStage]);
 
   // value sequence
   useEffect(() => {
     if (backendStage !== "ready") return;
     fetch(`${API_BASE}/api/value_sequence`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((r) => {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
       .then(setValueSequence)
-      .catch(err => console.error("Error fetching value sequence:", err));
+      .catch((err) => console.error("Error fetching value sequence:", err));
   }, [backendStage]);
 
   useEffect(() => {
@@ -108,9 +137,7 @@ function App() {
 
     fetch(`${API_BASE}/api/collection_sections`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         collection_id: selectedCollection.id,
         filter_sequence: filterOrder,
@@ -126,15 +153,18 @@ function App() {
       });
   }, [backendStage, selectedCollection, filterOrder]);
 
-  // Adjustable values
-  const headerHeight = 5;         // %
-  const summaryWidth = 30;        // %
-  const summaryHeight = 25;       // %
-  const polygonWidth = 40;        // %
-  const polygonHeight =68;       // %
-  const paddingX = 0.25;      // vw
-  const paddingY = 0.5;      // vh
+  // ---------------- Layout constants ----------------
+  const headerHeight = 5; // %
+  const summaryWidth = 30; // %
+  const summaryHeight = 25; // %
+  const polygonWidth = 40; // %
+  const polygonHeight = 68; // %
+  const paddingX = 0.25; // vw
+  const paddingY = 0.5; // vh
 
+  // ---------------- Refs ----------------
+  const appRef = useRef(null);            // whole app capture
+  const headerRef = useRef(null);         // (optional) header area
   const summaryRef = useRef(null);
   const polygonRef = useRef(null);
   const insightSummaryRef = useRef(null);
@@ -142,20 +172,60 @@ function App() {
   const similarityRef = useRef(null);
   const historyRef = useRef(null);
 
+  // ---------------- PNG capture (frontend-only) ----------------
+  const downloadDataUrl = (dataUrl, filename) => {
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = filename;
+    // For Firefox, link must be in the document
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
-  // make Shot async so we can await the capture
+  const captureNodeToPng = async (node, label) => {
+    if (!node) return;
+
+    // Use display pixel ratio for “what I see is what I get”
+    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 2));
+
+    const dataUrl = await toPng(node, {
+      pixelRatio: dpr,
+      cacheBust: true,
+      backgroundColor: "#ffffff",
+      // Ensure exact on-screen size:
+      width: node.clientWidth,
+      height: node.clientHeight,
+      // fontEmbedCSS can sometimes help with custom fonts; usually not needed.
+    });
+
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const safeLabel = (label || "shot").replace(/\s+/g, "_");
+    const filename = `${stamp}__${safeLabel}.png`;
+    downloadDataUrl(dataUrl, filename);
+  };
+
+  const captureSection = async (ref, label) => {
+    if (!ref?.current) return;
+    await captureNodeToPng(ref.current, label);
+  };
+
+  const captureWholeApp = async () => {
+    if (!appRef.current) return;
+    await captureNodeToPng(appRef.current, "Full-Interface");
+  };
+
+  // make History thumbnail shot (unchanged; keeps your history flow)
   const handleShot = async () => {
     if (!clickedInsight || !selectedCollection || !polygonRef.current) return;
+    const node = polygonRef.current.querySelector("svg") || polygonRef.current;
 
-    // grab the SVG node inside the polygon container
-    const node = polygonRef.current.querySelector('svg') || polygonRef.current;
-
-    // make a crisp thumbnail
     const thumb = await toPng(node, {
-      pixelRatio: 2,
-      backgroundColor: '#fff',
-      // optional: set export size (or let it auto-size)
-      // width: 600, height: 400,
+      pixelRatio: Math.max(1, Math.floor(window.devicePixelRatio || 2)),
+      backgroundColor: "#ffffff",
+      cacheBust: true,
+      width: node.clientWidth,
+      height: node.clientHeight,
     });
 
     const snapshot = {
@@ -163,15 +233,13 @@ function App() {
       timestamp: Date.now(),
       collection: selectedCollection,
       insight: clickedInsight,
-      thumb, // ← store the PNG data URL
+      thumb, // data URL
     };
 
-    // console.log("Saving screenshot to history:", thumb);
-
-    setHistory(prev => [snapshot, ...prev]);
+    setHistory((prev) => [snapshot, ...prev]);
   };
 
-
+  // ---------------- Sizes ----------------
   const summarySize = useElementSize(summaryRef);
   const polygonSize = useElementSize(polygonRef);
   const insightSummarySize = useElementSize(insightSummaryRef);
@@ -179,7 +247,7 @@ function App() {
   const similaritySize = useElementSize(similarityRef);
   const historySize = useElementSize(historyRef);
 
-  // Computed values
+  // ---------------- Computed layout ----------------
   const insightSummaryWidth = 100 - summaryWidth - polygonWidth;
   const collectionVoronoiHeight = 100 - headerHeight - summaryHeight;
   const historyHeight = 100 - headerHeight - polygonHeight;
@@ -191,77 +259,126 @@ function App() {
   const collectionVoronoiTop = headerHeight + summaryHeight;
 
   const sectionStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    justifyContent: 'flex-start',
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    justifyContent: "flex-start",
     paddingTop: `${paddingY}vh`,
     paddingLeft: `${paddingX}vw`,
     paddingRight: `${paddingX}vw`,
-    boxSizing: 'border-box',
-    position: 'absolute',
-    overflow: 'hidden'
+    boxSizing: "border-box",
+    position: "absolute",
+    overflow: "hidden",
   };
 
   const titleStyle = {
-    background: '#ccccccff',
-    color: 'black',
-    padding: '0.5vh 0.5vw',
-    fontSize: '10px',
+    background: "#ccccccff",
+    color: "black",
+    padding: "0.4vh 0.4vw",
+    fontSize: "12px",
   };
 
   const contentRectStyle = {
     flex: 1,
-    background: '#ffffff',
-    marginBottom: '4px',
-    border: '1px solid #e0e0e0',
-    boxShadow: '0 0 4px rgba(0,0,0,0.15)'
+    background: "#ffffff",
+    marginBottom: "4px",
+    border: "1px solid #e0e0e0",
+    boxShadow: "0 0 4px rgba(0,0,0,0.15)",
   };
 
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#f9f9f9', fontFamily: 'sans-serif' }}>
-      {/* Header */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0,
-        width: '100%', height: `${headerHeight}%`,
-        background: '#5e5e5eff', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '5vw' // horizontal padding
-      }}>
-        <div style={{ fontWeight: 800, paddingLeft: '5vw', fontSize: 30 }}>DFCollection</div>
-        <UploadAndSelect width="100%" apiBase="http://127.0.0.1:5000" />
+    <div
+      ref={appRef}
+      style={{
+        position: "relative",
+        width: "100vw",
+        height: "100vh",
+        background: "#f9f9f9",
+        fontFamily: "sans-serif",
+      }}
+    >
+      {/* Header (with whole-app capture button) */}
+      <div
+        ref={headerRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: `${headerHeight}%`,
+          background: "#5e5e5eff",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: "5vw",
+          // Make it a containing block for the invisible button:
+          position: "absolute",
+        }}
+      >
+        <div style={{ position: "relative", paddingLeft: "5vw" }}>
+          <div style={{ fontWeight: 800, fontSize: 30 }}>DFCollection</div>
+          {/* Invisible header-level shot (captures entire interface) */}
+          <ShotButton
+            title="Save Full Interface PNG"
+            onClick={captureWholeApp}
+          />
+        </div>
+        <UploadAndSelect width="100%" apiBase={API_BASE} />
       </div>
 
       {/* Collection-Summary View */}
-      <div style={{
-        ...sectionStyle,
-        position: 'absolute',
-        top: `${headerHeight}%`, left: '0%',
-        width: `${summaryWidth}%`, height: `${summaryHeight}%`,
-        background: '#ffffffff'
-      }}>
-        <div style={titleStyle}>Collection-Summary View</div>
+      <div
+        style={{
+          ...sectionStyle,
+          position: "absolute",
+          top: `${headerHeight}%`,
+          left: "0%",
+          width: `${summaryWidth}%`,
+          height: `${summaryHeight}%`,
+          background: "#ffffffff",
+        }}
+      >
+        <div style={{ position: "relative" }}>
+          <div style={titleStyle}>Collection-Summary View</div>
+          <ShotButton
+            onClick={() => captureSection(summaryRef, "Collection-Summary")}
+          />
+        </div>
         <div style={contentRectStyle} ref={summaryRef}>
           <CollectionSummary
             insights={insights}
             collections={collections}
             width={summarySize.width}
-            height={summarySize.height} // 30px for header
+            height={summarySize.height}
             onFilterSelected={handleFilterSelected}
           />
         </div>
       </div>
 
       {/* Insight-Polygon View */}
-      <div style={{
-        ...sectionStyle,
-        position: 'absolute',
-        top: `${headerHeight}%`, left: `${summaryWidth}%`,
-        width: `${polygonWidth}%`, height: `${polygonHeight}%`,
-        background: '#ffffffff'
-      }}>
-        <div style={titleStyle}>Insight-Polygon View</div>
+      <div
+        style={{
+          ...sectionStyle,
+          position: "absolute",
+          top: `${headerHeight}%`,
+          left: `${summaryWidth}%`,
+          width: `${polygonWidth}%`,
+          height: `${polygonHeight}%`,
+          background: "#ffffffff",
+        }}
+      >
+        <div style={{ position: "relative" }}>
+          <div style={titleStyle}>Collection-Fact View</div>
+          <ShotButton
+            onClick={() => captureSection(polygonRef, "Insight-Polygon")}
+          />
+        </div>
         <div style={contentRectStyle} ref={polygonRef}>
           {!selectedCollection ? (
-            <div style={{ padding: 32 }}>Select a collection to explore details.</div>
+            <div style={{ padding: 32 }}>
+              Select a collection to explore details.
+            </div>
           ) : (
             <InsightPolygon
               width={polygonSize.width}
@@ -278,16 +395,25 @@ function App() {
       </div>
 
       {/* Insight-Summary View */}
-      <div style={{
-        ...sectionStyle,
-        position: 'absolute',
-        top: `${headerHeight}%`, left: `${insightSummaryLeft}%`,
-        width: `${insightSummaryWidth}%`, height: `${summaryHeight}%`,
-        background: 'rgba(255, 255, 255, 1)'
-      }}>
-        <div style={titleStyle}>Insight-Summary View</div>
+      <div
+        style={{
+          ...sectionStyle,
+          position: "absolute",
+          top: `${headerHeight}%`,
+          left: `${insightSummaryLeft}%`,
+          width: `${insightSummaryWidth}%`,
+          height: `${summaryHeight}%`,
+          background: "rgba(255, 255, 255, 1)",
+        }}
+      >
+        <div style={{ position: "relative" }}>
+          <div style={titleStyle}>Fact Summary View</div>
+          <ShotButton
+            onClick={() => captureSection(insightSummaryRef, "Insight-Summary")}
+          />
+        </div>
         <div style={contentRectStyle} ref={insightSummaryRef}>
-          <InsightSummary 
+          <InsightSummary
             width={insightSummarySize.width}
             height={insightSummarySize.height}
             selectedCollection={selectedCollection}
@@ -296,14 +422,24 @@ function App() {
       </div>
 
       {/* Collection-Voronoi View */}
-      <div style={{
-        ...sectionStyle,
-        position: 'absolute',
-        top: `${collectionVoronoiTop}%`, left: '0%',
-        width: `${summaryWidth}%`, height: `${collectionVoronoiHeight}%`,
-        background: '#ffffffff', color: 'white'
-      }}>
-        <div style={titleStyle}>Collection-Voronoi View</div>
+      <div
+        style={{
+          ...sectionStyle,
+          position: "absolute",
+          top: `${collectionVoronoiTop}%`,
+          left: "0%",
+          width: `${summaryWidth}%`,
+          height: `${collectionVoronoiHeight}%`,
+          background: "#ffffffff",
+          color: "white",
+        }}
+      >
+        <div style={{ position: "relative" }}>
+          <div style={titleStyle}>Collection-Fact View</div>
+          <ShotButton
+            onClick={() => captureSection(voronoiRef, "Collection-Voronoi")}
+          />
+        </div>
         <div style={contentRectStyle} ref={voronoiRef}>
           <CollectionVoronoi
             width={voronoiSize.width}
@@ -320,14 +456,24 @@ function App() {
       </div>
 
       {/* Insight-Similarity View */}
-      <div style={{
-        ...sectionStyle,
-        position: 'absolute',
-        top: `${insightSimilarityTop}%`, left: `${insightSummaryLeft}%`,
-        width: `${insightSummaryWidth}%`, height: `${insightSimilarityHeight}%`,
-        background: '#ffffffff', color: 'white'
-      }}>
-        <div style={titleStyle}>Insight-Similarity View</div>
+      <div
+        style={{
+          ...sectionStyle,
+          position: "absolute",
+          top: `${insightSimilarityTop}%`,
+          left: `${insightSummaryLeft}%`,
+          width: `${insightSummaryWidth}%`,
+          height: `${insightSimilarityHeight}%`,
+          background: "#ffffffff",
+          color: "white",
+        }}
+      >
+        <div style={{ position: "relative" }}>
+          <div style={titleStyle}>Fact View</div>
+          <ShotButton
+            onClick={() => captureSection(similarityRef, "Insight-Similarity")}
+          />
+        </div>
         <div style={contentRectStyle} ref={similarityRef}>
           <InsightSimilarity
             width={similaritySize.width}
@@ -340,22 +486,32 @@ function App() {
       </div>
 
       {/* History View */}
-      <div style={{
-        ...sectionStyle,
-        position: 'absolute',
-        top: `${historyTop}%`, left: `${summaryWidth}%`,
-        width: `${polygonWidth + insightSummaryWidth}%`, height: `${historyHeight}%`,
-        background: '#ffffffff', color: 'white'
-      }}>
-        <div style={titleStyle}>History View</div>
+      <div
+        style={{
+          ...sectionStyle,
+          position: "absolute",
+          top: `${historyTop}%`,
+          left: `${summaryWidth}%`,
+          width: `${polygonWidth + insightSummaryWidth}%`,
+          height: `${historyHeight}%`,
+          background: "#ffffffff",
+          color: "white",
+        }}
+      >
+        <div style={{ position: "relative" }}>
+          <div style={titleStyle}>History View</div>
+          <ShotButton
+            onClick={() => captureSection(historyRef, "History-View")}
+          />
+        </div>
         <div style={contentRectStyle} ref={historyRef}>
           <HistoryView
             width={historySize.width}
             height={historySize.height}
             currentInsight={clickedInsight}
-            currentCollection={selectedCollection} // collection for current insight
-            history={history}                  // ← pass the stored history
-            onShot={handleShot}                // ← “screenshot” button handler
+            currentCollection={selectedCollection}
+            history={history}
+            onShot={handleShot}
           />
         </div>
       </div>
