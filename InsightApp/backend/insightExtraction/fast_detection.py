@@ -68,14 +68,14 @@ def _quick_linreg_turbulence(x, y):
 
 def quick_is_dominance(vals):
     # Top-1 share heuristic
-    return _share_top(vals, k=1) >= 0.60
+    return _share_top(vals, k=1) >= 0.66
 
 def quick_is_outstanding_twin(vals):
     top2_share = _share_top(vals, k=2)
     fir_share = _share_top(vals, k=1)
     sec_share = top2_share - fir_share
     # Two large categories dominating together
-    return fir_share >= 0.3 and sec_share >= 0.3
+    return fir_share >= 0.33 and sec_share >= 0.33
 
 def quick_is_evenness(vals):
     # Uniformity by CV and entropy (both cheap)

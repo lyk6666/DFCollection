@@ -250,7 +250,7 @@ function App() {
         </div>
       </div>
 
-      {/* Insight-Polygon View */}
+      {/* Collection-Fact View */}
       <div style={{
         ...sectionStyle,
         position: 'absolute',
@@ -258,7 +258,7 @@ function App() {
         width: `${polygonWidth}%`, height: `${polygonHeight}%`,
         background: '#ffffffff'
       }}>
-        <div style={titleStyle}>Insight-Polygon View</div>
+        <div style={titleStyle}>Collection-Fact View</div>
         <div style={contentRectStyle} ref={polygonRef}>
           {!selectedCollection ? (
             <div style={{ padding: 32 }}>Select a collection to explore details.</div>
@@ -277,7 +277,7 @@ function App() {
         </div>
       </div>
 
-      {/* Insight-Summary View */}
+      {/* Fact-Summary View */}
       <div style={{
         ...sectionStyle,
         position: 'absolute',
@@ -285,7 +285,7 @@ function App() {
         width: `${insightSummaryWidth}%`, height: `${summaryHeight}%`,
         background: 'rgba(255, 255, 255, 1)'
       }}>
-        <div style={titleStyle}>Insight-Summary View</div>
+        <div style={titleStyle}>Fact-Summary View</div>
         <div style={contentRectStyle} ref={insightSummaryRef}>
           <InsightSummary 
             width={insightSummarySize.width}
@@ -295,7 +295,7 @@ function App() {
         </div>
       </div>
 
-      {/* Collection-Voronoi View */}
+      {/* Collection View */}
       <div style={{
         ...sectionStyle,
         position: 'absolute',
@@ -303,7 +303,7 @@ function App() {
         width: `${summaryWidth}%`, height: `${collectionVoronoiHeight}%`,
         background: '#ffffffff', color: 'white'
       }}>
-        <div style={titleStyle}>Collection-Voronoi View</div>
+        <div style={titleStyle}>Collection View</div>
         <div style={contentRectStyle} ref={voronoiRef}>
           <CollectionVoronoi
             width={voronoiSize.width}
@@ -319,7 +319,7 @@ function App() {
         </div>
       </div>
 
-      {/* Insight-Similarity View */}
+      {/* Fact View */}
       <div style={{
         ...sectionStyle,
         position: 'absolute',
@@ -327,7 +327,7 @@ function App() {
         width: `${insightSummaryWidth}%`, height: `${insightSimilarityHeight}%`,
         background: '#ffffffff', color: 'white'
       }}>
-        <div style={titleStyle}>Insight-Similarity View</div>
+        <div style={titleStyle}>Fact View</div>
         <div style={contentRectStyle} ref={similarityRef}>
           <InsightSimilarity
             width={similaritySize.width}
