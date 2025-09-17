@@ -84,7 +84,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           <div
             style={{
               flex: 1,
-              paddingRight: localChartW * 0.2,
+              paddingRight: localChartW * 0.1,
               textAlign: "center",
               fontSize: width * 0.01,
               color: "grey"
@@ -96,7 +96,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           <div
             style={{
               flex: 1,
-              paddingRight: localChartW * 0.4,
+              paddingRight: localChartW * 0.3,
               paddingBottom: localChartH * 0.03,
               paddingTop: localChartH * 0.01,
               textAlign: "center",
@@ -145,10 +145,9 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     const renderChart = () => {
       switch (type) {
         case "Dominance": {
-          // Regular pie chart for Dominance
           const generateBlueShades = (count) => {
-            const start = { r: 90, g: 216, b: 230 }; // light blue (lightsteelblue)
-            const end = { r: 30, g: 144, b: 200 };    // dodgerblue
+            const start = { r: 90, g: 216, b: 230 }; // light blue
+            const end   = { r: 30, g: 144, b: 200 }; // dodgerblue
             return Array.from({ length: count }, (_, i) => {
               const ratio = i / Math.max(1, (count - 1));
               const r = Math.round(start.r + (end.r - start.r) * ratio);
@@ -160,25 +159,50 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
           const colors = generateBlueShades(data.length);
 
+          // Find the largest slice once
+          const largestIndex = data.reduce(
+            (maxIdx, d, i) =>
+              d[measureKey] > data[maxIdx][measureKey] ? i : maxIdx,
+            0
+          );
+
           const RADIAN = Math.PI / 180;
           const labelFontSize = Math.min(localChartW * 0.06, localChartH * 0.06);
 
           const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
-            const radius = outerRadius * 1.05; // slightly outside the pie
+            const radius = outerRadius * 1.05;
             const x = cx + radius * Math.cos(-midAngle * RADIAN);
             const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
+            const text = `${name} (${(percent * 100).toFixed(1)}%)`;
+            const textWidth = text.length * labelFontSize * 0.6;
+            const textHeight = labelFontSize * 1.2;
+
             return (
-              <text
-                x={x}
-                y={y}
-                fill="#333"
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={labelFontSize}
-              >
-                {`${name} (${(percent * 100).toFixed(1)}%)`}
-              </text>
+              <g>
+                <rect
+                  x={x - textWidth / 2}
+                  y={y - textHeight / 2}
+                  width={textWidth}
+                  height={textHeight}
+                  fill="white"
+                  opacity={0.8}
+                  rx={3}
+                  ry={3}
+                  stroke="#333"
+                  strokeWidth={0.5}
+                />
+                <text
+                  x={x}
+                  y={y}
+                  fill="#333"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={labelFontSize}
+                >
+                  {text}
+                </text>
+              </g>
             );
           };
 
@@ -195,7 +219,10 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   cy="45%"
                   outerRadius={Math.min(localChartW, localChartH) * 0.4}
                   paddingAngle={1}
-                  label={renderCustomLabel}
+                  // Only render a label for the largest slice
+                  label={(props) =>
+                    props.index === largestIndex ? renderCustomLabel(props) : null
+                  }
                   isAnimationActive={false}
                 >
                   {data.map((entry, i) => (
@@ -221,8 +248,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
                 <YAxis
-                  tick={{ fontSize: tickFont }}
-                  textAnchor="middle"
+                  tick={{ fontSize: tickFont * 0.65 }}
                   label={{ value: measureKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip />
@@ -244,7 +270,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
                 <YAxis
-                  tick={{ fontSize: tickFont }}
+                  tick={{ fontSize: tickFont * 0.65 }}
                   label={{ value: measureKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip />
@@ -280,7 +306,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
                 <YAxis
-                  tick={{ fontSize: tickFont }}
+                  tick={{ fontSize: tickFont * 0.65 }}
                   label={{ value: measureKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip />
@@ -301,20 +327,22 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
         case "Temporal Correlation": {
           const [xKey, yKey] = Array.isArray(measure) ? measure : [measure, measure];
+
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
-              <LineChart data={data} margin={TCMargins}>
-                {/* <CartesianGrid strokeDasharray="3 3" /> */}
+              <LineChart data={data} margin={commonMargins}>
+                {/* X axis mirrors Trend/Change Point */}
                 <XAxis
-                  dataKey="index"
-                  tick={{ fontSize: tickFont }}
+                  dataKey={breakdown}
+                  ticks={data.map(d => d[breakdown])}
+                  tick={{ fontSize: tickFont, angle: -10 }}
                   label={{ value: breakdown, position: "insideBottom", offset: XaxisOffset, fontSize: axisLabelFont }}
                 />
 
-                {/* LEFT Y-AXIS for the first line */}
+                {/* LEFT Y-AXIS for the first series */}
                 <YAxis
                   yAxisId="left"
-                  tick={{ fontSize: tickFont }}
+                  tick={{ fontSize: tickFont * 0.65 }}
                   label={{
                     value: xKey,
                     angle: -90,
@@ -324,11 +352,11 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   }}
                 />
 
-                {/* RIGHT Y-AXIS for the second line */}
+                {/* RIGHT Y-AXIS for the second series */}
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fontSize: tickFont }}
+                  tick={{ fontSize: tickFont * 0.65 }}
                   label={{
                     value: yKey,
                     angle: 90,
@@ -340,14 +368,15 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
                 <Tooltip />
 
-                {/* Bind each line to its axis */}
+                {/* Lines styled like Trend (no static dots; activeDot for hover) */}
                 <Line
                   yAxisId="left"
                   type="monotone"
                   dataKey={xKey}
                   stroke="#2E7D32"
                   strokeWidth={2}
-                  dot={false}
+                  dot={{ r: 0 }}
+                  activeDot={{ r: Math.max(3, localChartW * 0.008) }}
                   isAnimationActive={false}
                 />
                 <Line
@@ -356,7 +385,8 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   dataKey={yKey}
                   stroke="#6be46fff"
                   strokeWidth={2}
-                  dot={false}
+                  dot={{ r: 0 }}
+                  activeDot={{ r: Math.max(3, localChartW * 0.008) }}
                   isAnimationActive={false}
                 />
               </LineChart>
@@ -384,7 +414,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   dataKey={yKey}
                   name={yKey}
                   domain={["auto", "auto"]}
-                  tick={{ fontSize: tickFont }}
+                  tick={{ fontSize: tickFont * 0.65 }}
                   label={{ value: yKey, angle: -90, position: "insideLeft", offset: YaxisOffset, fontSize: axisLabelFont }}
                 />
                 <Tooltip cursor={{ strokeDasharray: "3 3" }} />
@@ -410,7 +440,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           overflow: "hidden",
         }}
       >
-        <div><strong>Breakdown:</strong> {breakdown}</div>
+        {/* <div><strong>Breakdown:</strong> {breakdown}</div> */}
         {/* <div><strong>Measure:</strong> {Array.isArray(measure) ? measure.join(", ") : measure}</div> */}
         {/* <div><strong>Significance: </strong>{significance?.toFixed?.(6)}</div> */}
         <div><strong>Score:</strong> {score?.toFixed?.(6)}</div>
@@ -432,49 +462,52 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
   // Build the full history items list for the slider (NO slicing — renders ALL)
   const historyItems = useMemo(() => {
-    return (history || []).map((item, i) => (
-      <div
-        key={i}
-        style={{
-          ...cellStyle,
-          minWidth: cellW,
-          width: cellW,
-          height: cellH,
-          scrollSnapAlign: "start",
-        }}
-      >
-        {item ? (
-          <>
-            {renderPanel(item.insight, item.collection, false, false, i)}
-
-            {/* Thumbnail overlay */}
-            {item.thumb && (
-              <img
-                src={item.thumb}
-                alt="Polygon snapshot"
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: 0,
-                  width: cellW * 0.30,
-                  height: cellH * 0.40,
-                  objectFit: "contain",
-                  border: "1px solid #ddd",
-                  background: "#fff",
-                  boxShadow: "0 3px 3px rgba(0,0,0,0.2)",
-                  opacity: 0.75,
-                }}
-              />
-            )}
-          </>
-        ) : (
-          <div style={{ padding: 12, fontSize: 12, color: "#888" }}>
-            History {i + 1} (empty)
-          </div>
-        )}
-      </div>
-    ));
+    return (history || []).map((item, i) => {
+      // reverse the order for numbering: oldest = 1
+      const sequence = history.length - 1 - i;
+      return (
+        <div
+          key={i}
+          style={{
+            ...cellStyle,
+            minWidth: cellW,
+            width: cellW,
+            height: cellH,
+            scrollSnapAlign: "start",
+          }}
+        >
+          {item ? (
+            <>
+              {renderPanel(item.insight, item.collection, false, false, sequence)}
+              {item.thumb && (
+                <img
+                  src={item.thumb}
+                  alt="Polygon snapshot"
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: 0,
+                    width: cellW * 0.30,
+                    height: cellH * 0.40,
+                    objectFit: "contain",
+                    border: "1px solid #ddd",
+                    background: "#fff",
+                    boxShadow: "0 3px 3px rgba(0,0,0,0.2)",
+                    opacity: 0.8,
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            <div style={{ padding: 12, fontSize: 12, color: "#888" }}>
+              History {sequence + 1} (empty)
+            </div>
+          )}
+        </div>
+      );
+    });
   }, [history, cellH, cellW]);
+
 
   return (
     <div style={{ width, height, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap }}>

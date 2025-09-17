@@ -19,9 +19,9 @@ const baseButtonStyle = {
 
 const primaryButtonStyle = {
   ...baseButtonStyle,
-  background: "#0ea5e9",
-  borderColor: "#0ea5e9",
-  color: "#fff",
+  background: "#fff",
+  borderColor: "#fff",
+  color: "#111",
 };
 
 const subtleButtonStyle = {
@@ -463,19 +463,19 @@ export default function UploadAndSelect({ apiBase = DEFAULT_API_BASE }) {
       {columns.length > 0 && (
         <>
           <DropdownChecklist
-            label="Subspace Columns"
+            label="Subspace Attributes"
             options={options}
             selected={categorical}
             onChange={setCategorical}
           />
           <DropdownChecklist
-            label="Ordinal Columns"
+            label="Ordinal Attributes"
             options={options}
             selected={ordinal}
             onChange={setOrdinal}
           />
           <MeasureDropdown
-            label="Measure Columns"
+            label="Measure Attributes"
             options={options.filter(({ value }) => isNumericDtype(dtypes[value]))}
             selected={numerical}
             onSelectedChange={setNumerical}

@@ -27,7 +27,7 @@ const SIZE = 256;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
 const R = SIZE * 0.35; // padding
-const STROKE_W = Math.max(1, Math.round(SIZE * 0.01)); // ~5px
+const STROKE_W = Math.max(1, Math.round(SIZE * 0.015)); // ~5px
 const DASH = `${(STROKE_W * 6) / 5} ${(STROKE_W * 9) / 5}`; // proportional dash
 
 // colors 0..7 (same idea as interpolateReds)

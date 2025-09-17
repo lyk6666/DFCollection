@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <path d="M128,38.4L198.052,72.135L215.354,147.938L166.876,208.727L89.124,208.727L40.646,147.938L57.948,72.135L128,38.4" fill="rgb(103, 0, 13)" />
-  <line x1="128.00" y1="38.40" x2="198.05" y2="72.14" stroke="#333" stroke-width="3"  stroke-linecap="round" />
-<line x1="198.05" y1="72.14" x2="215.35" y2="147.94" stroke="#333" stroke-width="3"  stroke-linecap="round" />
-<line x1="215.35" y1="147.94" x2="166.88" y2="208.73" stroke="#333" stroke-width="3"  stroke-linecap="round" />
-<line x1="166.88" y1="208.73" x2="89.12" y2="208.73" stroke="#333" stroke-width="3"  stroke-linecap="round" />
-<line x1="89.12" y1="208.73" x2="40.65" y2="147.94" stroke="#333" stroke-width="3"  stroke-linecap="round" />
-<line x1="40.65" y1="147.94" x2="57.95" y2="72.14" stroke="#333" stroke-width="3"  stroke-linecap="round" />
-<line x1="57.95" y1="72.14" x2="128.00" y2="38.40" stroke="#333" stroke-width="3"  stroke-linecap="round" />
+  <line x1="128.00" y1="38.40" x2="198.05" y2="72.14" stroke="#333" stroke-width="4"  stroke-linecap="round" />
+<line x1="198.05" y1="72.14" x2="215.35" y2="147.94" stroke="#333" stroke-width="4"  stroke-linecap="round" />
+<line x1="215.35" y1="147.94" x2="166.88" y2="208.73" stroke="#333" stroke-width="4"  stroke-linecap="round" />
+<line x1="166.88" y1="208.73" x2="89.12" y2="208.73" stroke="#333" stroke-width="4"  stroke-linecap="round" />
+<line x1="89.12" y1="208.73" x2="40.65" y2="147.94" stroke="#333" stroke-width="4"  stroke-linecap="round" />
+<line x1="40.65" y1="147.94" x2="57.95" y2="72.14" stroke="#333" stroke-width="4"  stroke-linecap="round" />
+<line x1="57.95" y1="72.14" x2="128.00" y2="38.40" stroke="#333" stroke-width="4"  stroke-linecap="round" />
 </svg>

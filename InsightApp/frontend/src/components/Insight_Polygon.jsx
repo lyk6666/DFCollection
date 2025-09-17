@@ -774,7 +774,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
 
       {/* Embedded Color Legend in SVG */}
-      {/* {colorMap && (
+      {colorMap && (
         <g transform={`translate(${size * 0.02}, ${size * 0.02})`}>
           <text
             x={size * 0.01}
@@ -807,7 +807,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
             </g>
           ))}
         </g>
-      )} */}
+      )}
       
       </svg>
       

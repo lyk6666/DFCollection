@@ -257,17 +257,38 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
                 const value = filterCountData[index];
                 if (!value) return null;
 
+                const fontSizePx = width * 0.01;
+                const text = `F${value.filterCount} (${value.count}, ${(percent * 100).toFixed(1)}%)`;
+
+                // Roughly estimate text width: characters × font size × 0.6
+                const textWidth = text.length * fontSizePx * 0.6;
+                const textHeight = fontSizePx * 1.2;
+
                 return (
-                  <text
-                    x={x}
-                    y={y}
-                    fill="#333"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fontSize={width * 0.015}
-                  >
-                    {`F${value.filterCount} (${value.count}, ${(percent * 100).toFixed(1)}%)`}
-                  </text>
+                  <g>
+                    <rect
+                      x={x - textWidth / 2}
+                      y={y - textHeight / 2}
+                      width={textWidth}
+                      height={textHeight}
+                      fill="white"
+                      opacity={0.6}
+                      rx={3}
+                      ry={3}
+                      stroke="#333"
+                      strokeWidth={0.5}
+                    />
+                    <text
+                      x={x}
+                      y={y}
+                      fill="#333"
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={fontSizePx}
+                    >
+                      {text}
+                    </text>
+                  </g>
                 );
               }}
               onClick={handleFilterClick}

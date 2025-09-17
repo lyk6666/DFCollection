@@ -16,9 +16,6 @@ BETA_FILTER = 0.5
 # Collection Similarity: higher --> more emphasis on type variety
 BETA_TYPE = 0.5
 
-# DR parameter: MDS
-MDS_SEED = 42
-
 # Parameter of adjusting the size of polygon
 R_BETA = 0.8
 

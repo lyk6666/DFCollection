@@ -273,7 +273,7 @@ function App() {
   };
 
   const titleStyle = {
-    background: "#ccccccff",
+    background: "#d8d8d8ff",
     color: "black",
     padding: "0.4vh 0.4vw",
     fontSize: "12px",
@@ -295,7 +295,7 @@ function App() {
         width: "100vw",
         height: "100vh",
         background: "#f9f9f9",
-        fontFamily: "sans-serif",
+        fontFamily: '"Verdana", sans-serif',
       }}
     >
       {/* Header (with whole-app capture button) */}

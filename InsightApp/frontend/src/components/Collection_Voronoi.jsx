@@ -122,12 +122,19 @@ function CollectionVoronoi({
   // 🆕 Map: collectionId -> first-seen sequence (1-based)
   const seqByCollection = useMemo(() => {
     const m = new Map();
+    const total = history.length;
+
     history.forEach((h, i) => {
       const id = h?.collection?.id;
-      if (id != null && !m.has(id)) m.set(id, i + 1);
+      if (id != null && !m.has(id)) {
+        // Oldest = 1, Newest = total
+        m.set(id, total - i);
+      }
     });
+
     return m;
   }, [history]);
+
 
   useEffect(() => {
     if (!data || data.length === 0) return;
