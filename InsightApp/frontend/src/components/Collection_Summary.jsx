@@ -162,7 +162,7 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
     <div style={{ width, height, display: "flex", flexDirection: "row", overflow: "hidden" }}>
       {/* === Score Distribution with Line === */}
       <div style={{ width: chartWidth, height: "100%", backgroundColor: "white", border: "0.5px solid #ccc" }}>
-        <h4 style={{ color: "grey", textAlign: "center", fontSize }}>Score Distribution</h4>
+        <h4 style={{ color: "grey", textAlign: "center", fontSize }}>Index Distribution</h4>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart
             data={scoreData}
@@ -206,7 +206,7 @@ function CollectionSummary({ insights, collections, width, height, onFilterSelec
 
       {/* === Type Variety === */}
       <div style={{ width: chartWidth, height: "100%", backgroundColor: "white", border: "0.5px solid #ccc" }}>
-        <h4 style={{ color: "grey", textAlign: "center", fontSize }}>Type Variety</h4>
+        <h4 style={{ color: "grey", textAlign: "center", fontSize }}>Type Count</h4>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart data={typeData} margin={{ top: 0, right: width * 0.02, bottom: height * 0.02, left: -width * 0.07 }}>
             <CartesianGrid stroke="#f5f5f5" />

@@ -436,7 +436,7 @@ function App() {
         }}
       >
         <div style={{ position: "relative" }}>
-          <div style={titleStyle}>Collection-Fact View</div>
+          <div style={titleStyle}>Collection View</div>
           <ShotButton
             onClick={() => captureSection(voronoiRef, "Collection-Voronoi")}
           />
@@ -500,7 +500,7 @@ function App() {
         }}
       >
         <div style={{ position: "relative" }}>
-          <div style={titleStyle}>History View</div>
+          <div style={titleStyle}>Story View</div>
           <ShotButton
             onClick={() => captureSection(historyRef, "History-View")}
           />
