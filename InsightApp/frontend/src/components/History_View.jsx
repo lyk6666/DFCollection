@@ -440,7 +440,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           overflow: "hidden",
         }}
       >
-        {/* <div><strong>Breakdown:</strong> {breakdown}</div> */}
+        <div><strong>Breakdown:</strong> {breakdown}</div>
         {/* <div><strong>Measure:</strong> {Array.isArray(measure) ? measure.join(", ") : measure}</div> */}
         {/* <div><strong>Significance: </strong>{significance?.toFixed?.(6)}</div> */}
         <div><strong>Score:</strong> {score?.toFixed?.(6)}</div>
