@@ -385,7 +385,7 @@ function CollectionVoronoi({
         .attr("y", badgeY - bh / 2)
         .attr("width", bw).attr("height", bh)
         .attr("rx", br).attr("ry", br)
-        .attr("fill", "#b1b1b1ff")
+        .attr("fill", "#535353ff")
         .attr("stroke", "#c9c9c9ff")
         .attr("stroke-width", 0.8)
         .attr("pointer-events", "none")
