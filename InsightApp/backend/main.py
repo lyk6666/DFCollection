@@ -32,6 +32,8 @@ from insightSimilarity.insight_categorical_similarity import (
 # ==== Dynamic dataset/config ====
 import config  # uses the new upload-first config.py
 
+from pathlib import Path  # NEW
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -49,6 +51,47 @@ _cached_insights: Optional[List[Dict[str, Any]]] = None
 _cached_collections: Optional[List[Dict[str, Any]]] = None
 _cached_intra_similarity: Optional[Dict[str, Any]] = None
 _cached_inter_similarity: Optional[Dict[str, Any]] = None
+
+# ========= Insight disk store (optional) =========
+INSIGHT_STORE_DIR = Path("./precomputed_insights")
+def _get_store_file() -> Path:
+    """Use config.PRECOMPUTED_INSIGHTS_NAME if present, else 'insights'."""
+    base = getattr(config, "PRECOMPUTED_INSIGHTS_NAME", "insights")
+    safe_base = str(base).strip() or "insights"
+    return INSIGHT_STORE_DIR / f"{safe_base}.json"
+
+def _ensure_store_dir() -> None:
+    INSIGHT_STORE_DIR.mkdir(parents=True, exist_ok=True)
+
+def _save_insights_to_disk(insights: List[Dict[str, Any]]) -> None:
+    """Best-effort write; never breaks the request if it fails."""
+    try:
+        _ensure_store_dir()
+        file_path = _get_store_file()
+        with file_path.open("w", encoding="utf-8") as f:
+            json.dump(insights, f, ensure_ascii=False)
+        logger.info("Insights persisted to %s", file_path)
+    except Exception as e:
+        logger.warning("Failed to persist insights to disk: %s", e)
+
+def _load_insights_from_disk() -> Optional[List[Dict[str, Any]]]:
+    """
+    Load precomputed insights from ./precomputed_insights/<PRECOMPUTED_INSIGHTS_NAME>.json.
+    Returns None if the file is missing or unreadable.
+    """
+    from pathlib import Path  # if not already imported at top
+    INSIGHT_STORE_DIR = Path("./precomputed_insights")
+    base = getattr(config, "PRECOMPUTED_INSIGHTS_NAME", "insights")
+    safe_base = str(base).strip() or "insights"
+    file_path = INSIGHT_STORE_DIR / f"{safe_base}.json"
+
+    if file_path.exists():
+        try:
+            with file_path.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning("Failed to read insights from disk (%s): %s", file_path, e)
+    return None
 
 # Simple processing state for the current dataset
 _state = {
@@ -81,6 +124,25 @@ def _canon_agg(agg: str) -> str:
             detail=f"Unsupported aggregation '{agg}'. Allowed: {sorted(_ALLOWED_FRONT_AGGS)}"
         )
     return _AGG_CANON[key]
+
+def _normalize_precomputed_insights(insights: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Ensure fields used as set/dict keys are hashable and shaped as expected by downstream code.
+    Currently: make 'measure' hashable (string or tuple) if it came as a list.
+    """
+    normalized = []
+    for ins in insights:
+        d = dict(ins)
+        # normalize 'measure'
+        m = d.get("measure")
+        if isinstance(m, list):
+            # choose one policy; either tuple or string-join
+            # Option A (safer for grouping keys): tuple
+            d["measure"] = tuple(m)
+            # Option B (if downstream expects a string, use this instead):
+            # d["measure"] = " | ".join(map(str, m))
+        normalized.append(d)
+    return normalized
 
 def _normalize_measure_aggs(raw: Any, numerical_cols: List[str]) -> Dict[str, str]:
     """
@@ -226,12 +288,65 @@ def _process_pipeline():
     """
     Heavy lifting: compute insights & collections for the current (uploaded) dataset.
     Runs in a background task so /set-columns returns immediately.
+
+    Modes:
+      - LOAD=False, STORE=False: original behavior
+      - LOAD=False, STORE=True: original behavior + persist to disk
+      - LOAD=True: load precomputed insights from disk, DO NOT call generate_insights,
+                   then compute collections/positions/similarities as usual
     """
     global _cached_insights, _cached_collections, _cached_intra_similarity, _cached_inter_similarity
 
     try:
         _state.update({"stage": "processing", "message": "Processing uploaded dataset...", "error": None})
 
+        # Flags & exclusivity check
+        load_from_disk = bool(getattr(config, "LOAD_INSIGHTS_FROM_DISK", False))
+        store_to_disk = bool(getattr(config, "STORE_INSIGHTS_TO_DISK", False))
+        if load_from_disk and store_to_disk:
+            raise HTTPException(
+                status_code=400,
+                detail="Both LOAD_INSIGHTS_FROM_DISK and STORE_INSIGHTS_TO_DISK are True. They are mutually exclusive."
+            )
+
+        # ===== LOAD mode: use precomputed insights, skip generation =====
+        if load_from_disk:
+            disk_insights = _load_insights_from_disk()
+            if disk_insights is None:
+                name = getattr(config, "PRECOMPUTED_INSIGHTS_NAME", "insights")
+                _state.update({
+                    "stage": "error",
+                    "message": f"Precomputed insights '{name}' not found on disk.",
+                    "error": "Missing precomputed insights file",
+                })
+                logger.error("LOAD mode enabled but no precomputed insights found.")
+                return
+
+            # Build collections/layout from precomputed insights
+            insights = _normalize_precomputed_insights(disk_insights)
+            collections = group_insights(insights)
+
+            similarities = compute_collection_similarities(collections)
+            positions = compute_mds_positions(similarities, len(collections))
+            scores = [col["total_score"] for col in collections]
+            positions = avoid_overlap(positions, scores)
+            for i, pos in enumerate(positions):
+                collections[i]["position"] = pos
+
+            # Compute categorical similarity matrices (fresh)
+            _cached_intra_similarity = intra_coupled_similarity()
+            _cached_inter_similarity = inter_coupled_similarity()
+
+            # Cache results
+            _cached_insights = insights
+            _cached_collections = to_jsonable(collections)
+
+            name = getattr(config, "PRECOMPUTED_INSIGHTS_NAME", "insights")
+            _state.update({"stage": "ready", "message": f"Loaded precomputed insights '{name}' from disk", "error": None})
+            logger.info("✅ Loaded precomputed insights '%s' from disk. Skipping generate_insights().", name)
+            return
+
+        # ===== Normal compute path (LOAD is False) =====
         df = config.DATAFRAME
         categorical = getattr(config, "CATEGORICAL_COLUMNS", []) or []
         ordinal = getattr(config, "ORDINAL_COLUMNS", []) or []
@@ -239,24 +354,23 @@ def _process_pipeline():
         if df is None:
             raise RuntimeError("DATAFRAME is None during processing")
 
-        # Get measure_aggs from config if available; default to SUM for selected numeric cols
+        # Aggregations (default to SUM for selected numeric cols)
         cfg_aggs = getattr(config, "MEASURE_AGGS", None)
         measure_aggs = _normalize_measure_aggs(cfg_aggs, numerical)
 
-        # 1) insights
+        # 1) Generate insights
         insights = _run_generate_insights(df, categorical, ordinal, numerical, measure_aggs)
-        # 2) collections
-        collections = group_insights(insights)
 
-        # Convert any pandas objects inside insights for frontend
-        json_ready_insights = []
+        # Ensure any pandas objects inside insights are JSON-serializable
+        json_ready_insights: List[Dict[str, Any]] = []
         for ins in insights:
             ins_copy = dict(ins)
             if hasattr(ins_copy.get("modified_dataset", None), "to_dict"):
                 ins_copy["modified_dataset"] = ins_copy["modified_dataset"].to_dict(orient="records")
             json_ready_insights.append(ins_copy)
 
-        # Pre-compute collection positions/layout
+        # 2) Build collections/layout from insights
+        collections = group_insights(json_ready_insights)
         similarities = compute_collection_similarities(collections)
         positions = compute_mds_positions(similarities, len(collections))
         scores = [col["total_score"] for col in collections]
@@ -264,15 +378,23 @@ def _process_pipeline():
         for i, pos in enumerate(positions):
             collections[i]["position"] = pos
 
-        # Optionally precompute categorical similarities
+        # Compute categorical similarity matrices (fresh)
         _cached_intra_similarity = intra_coupled_similarity()
         _cached_inter_similarity = inter_coupled_similarity()
 
+        # Cache results
         _cached_insights = json_ready_insights
         _cached_collections = to_jsonable(collections)
 
+        # STORE mode → persist computed insights to disk
+        if store_to_disk:
+            _save_insights_to_disk(_cached_insights)
+
         _state.update({"stage": "ready", "message": "Processing complete", "error": None})
         logger.info("✅ Pipeline processing complete.")
+    except HTTPException:
+        # surface FastAPI errors unchanged
+        raise
     except Exception as e:
         _state.update({"stage": "error", "message": "Processing failed", "error": str(e)})
         logger.exception("❌ Processing failed: %s", e)

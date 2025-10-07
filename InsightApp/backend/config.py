@@ -85,3 +85,9 @@ TYPE_METADATA = {
     "Temporal Correlation": ("Compound",        "#2ca02c"),
     "Correlation":          ("Compound",        "#2ca02c"),
 }
+
+# in config.py
+STORE_INSIGHTS_TO_DISK = False  # default False
+LOAD_INSIGHTS_FROM_DISK = False
+# PRECOMPUTED_INSIGHTS_NAME = "insights_HR"
+# PRECOMPUTED_INSIGHTS_NAME = "insights_Aust"
