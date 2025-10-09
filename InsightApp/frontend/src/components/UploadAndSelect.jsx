@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState } from "react";
+import {BACKEND_URL} from "../config";
 
 /** ====== CONFIG ====== */
 // Change this to match your backend's IP/port
-const DEFAULT_API_BASE = "http://127.0.0.1:5000";
+const API_BASE = BACKEND_URL;
 
 /** ====== SHARED STYLES ====== */
 const baseButtonStyle = {
@@ -57,6 +58,7 @@ const selectStyle = {
 
 /** ====== API HELPERS (local to this file) ====== */
 async function uploadCsv(file, API_BASE) {
+  console.log("API_BASE:", API_BASE);
   const form = new FormData();
   form.append("file", file);
   const res = await fetch(`${API_BASE}/upload-csv`, { method: "POST", body: form });
@@ -371,7 +373,7 @@ function CsvFilePicker({ onFile }) {
 }
 
 /** ====== MAIN COMBINED COMPONENT ====== */
-export default function UploadAndSelect({ apiBase = DEFAULT_API_BASE }) {
+export default function UploadAndSelect({ apiBase = API_BASE }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState("");

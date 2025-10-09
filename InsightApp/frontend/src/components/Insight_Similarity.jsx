@@ -8,6 +8,7 @@ import TrendIcon from "../assets/icons/Trend.svg";
 import TemporalCorrelationIcon from "../assets/icons/TemporalCorrelation.svg";
 import CorrelationIcon from "../assets/icons/Correlation.svg";
 import SkewnessIcon from "../assets/icons/Skewness.svg"
+import {BACKEND_URL} from "../config";
 
 const ICONS = {
   "Dominance": DominanceIcon,
@@ -19,6 +20,8 @@ const ICONS = {
   "Correlation": CorrelationIcon,
   "Skewness": SkewnessIcon
 };
+
+const API_BASE = BACKEND_URL;
 
 function InsightSimilarity({ width, height, collection, onInsightClick, selectedInsight }) {
   const [positionedInsights, setPositionedInsights] = useState([]);
@@ -37,7 +40,7 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
   useEffect(() => {
     if (!collection || !Array.isArray(collection.insights)) return;
 
-    fetch("http://localhost:5000/api/insight_similarity_layout", {
+    fetch(`${API_BASE}/api/insight_similarity_layout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ insights: collection.insights }),

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import * as d3 from "d3";
+import {BACKEND_URL} from "../config";
+
+const API_BASE = BACKEND_URL;
 
 function flattenSections(sections, depth = 0) {
   const all = [];
@@ -337,7 +340,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
 
   // Fetch value sequence
   useEffect(() => {
-    fetch("http://localhost:5000/api/value_sequence")
+    fetch(`${API_BASE}/api/value_sequence`)
       .then(res => res.json())
       .then(data => setValueSequences(data))
       .catch(err => console.error("Error fetching value sequences:", err));
@@ -356,7 +359,7 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
     console.log("Sending to /api/polygon_split:", payload);
     
     // setPolygonSections(null); // clear before fetching fresh
-    fetch("http://localhost:5000/api/polygon_split", {
+    fetch(`${API_BASE}/api/polygon_split`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)

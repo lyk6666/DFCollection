@@ -1,0 +1,13 @@
+version: "2"
+authtoken: 33mfbr9yhCdJhtwAejODIuZqnAl_59TfVBGCKyfE9H8E23Sxx
+
+tunnels:
+  frontend:
+    proto: http
+    addr: 8000
+    domain: lykfrontend.ngrok.dev
+
+  backend:
+    proto: http
+    addr: 5000
+    domain: lykbackend.ngrok.dev

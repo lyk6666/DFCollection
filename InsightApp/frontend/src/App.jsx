@@ -8,6 +8,7 @@ import InsightSimilarity from "./components/Insight_Similarity";
 import HistoryView from "./components/History_View";
 import InsightSummary from "./components/Insight_Summary";
 import UploadAndSelect from "./components/UploadAndSelect";
+import {BACKEND_URL} from "./config";
 
 // Invisible capture button beside titles
 function ShotButton({ onClick, title = "Save PNG shot" }) {
@@ -73,7 +74,7 @@ function App() {
   };
 
   // ---------------- Backend (unchanged; data only) ----------------
-  const API_BASE = "http://127.0.0.1:5000";
+  const API_BASE = BACKEND_URL;
   const [backendStage, setBackendStage] = useState("idle"); // idle | processing | ready | error
   const [backendMsg, setBackendMsg] = useState("");
 
