@@ -11,3 +11,5 @@ tunnels:
     proto: http
     addr: 5000
     domain: lykbackend.ngrok.dev
+
+# ngrok start --all --config=ngrok.yml

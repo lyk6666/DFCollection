@@ -11,11 +11,12 @@ import UploadAndSelect from "./components/UploadAndSelect";
 import {BACKEND_URL} from "./config";
 
 // Invisible capture button beside titles
-function ShotButton({ onClick, title = "Save PNG shot" }) {
+function ShotButton({ onClick, title = "Save PNG shot" }, disabled = true) {
   return (
     <button
       aria-label={title}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       style={{
         position: "absolute",
         right: "8px",
