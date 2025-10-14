@@ -24,7 +24,7 @@ function ShotButton({ onClick, title = "Save PNG shot" }) {
         background: "transparent",
         border: "none",
         cursor: "pointer",
-        opacity: 0, // Invisible as requested
+        opacity: 0,
       }}
     />
   );
@@ -163,8 +163,8 @@ function App() {
   const paddingY = 0.5; // vh
 
   // ---------------- Refs ----------------
-  const appRef = useRef(null);            // whole app capture
-  const headerRef = useRef(null);         // (optional) header area
+  const appRef = useRef(null);     
+  const headerRef = useRef(null);  
   const summaryRef = useRef(null);
   const polygonRef = useRef(null);
   const insightSummaryRef = useRef(null);
