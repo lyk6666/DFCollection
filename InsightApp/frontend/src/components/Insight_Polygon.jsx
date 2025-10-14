@@ -76,7 +76,7 @@ function generateInsightPoints(vertices, count) {
     let y = cy + radius * Math.sin(angle);
 
     if (d3.polygonContains(polygon, [x, y])) {
-      // ✅ Try to expand radius until no longer valid
+      // Try to expand radius until no longer valid
       let best = [x, y];
       while (radius < maxRadiusStep) {
         const tryX = cx + radius * Math.cos(angle);
@@ -90,7 +90,7 @@ function generateInsightPoints(vertices, count) {
       }
       points.push(best);
     } else {
-      // ❌ Not inside initially → try adjusting angle only
+      // Not inside initially → try adjusting angle only
       let tries = 0;
       let found = false;
       while (tries < maxAngleTries) {
@@ -410,7 +410,6 @@ function InsightPolygon({ width, height, collection, filterOrder, setFilterOrder
   ? polygonSections.split_lines.length > 0
   : !!polygonSections?.split_lines;
 
-  // ⛔ Hook declarations above ⛔ — now safe to return early
   if (!collection) return <div style={{ padding: 32 }}>Select a polygon to explore details.</div>;
 
   return (

@@ -192,8 +192,6 @@ function InsightSimilarity({ width, height, collection, onInsightClick, selected
           </g>
         );
       })}
-
-      {/* (Optional) connecting lines omitted for clarity; keep your original if needed */}
     </svg>
   );
 }

@@ -1,7 +1,6 @@
 from config import (
     MINI_DATASET,
 )
-
 from scipy.stats import skew, skewtest, norm, linregress, t
 import numpy as np
 
@@ -77,23 +76,20 @@ def test_evenness(values, eps=1e-12):
     if n < max(2, MINI_DATASET):
         return 0.0
 
-    # Entropy needs nonnegative mass; clamp tiny negatives and remove NaNs
     x = np.maximum(x, 0.0)
     total = float(np.sum(x))
     if not np.isfinite(total) or total <= eps:
         return 0.0
-
-    # Probabilities
     p = x / total
 
     # Normalized Shannon entropy (0 = perfectly uneven, 1 = perfectly uniform)
-    H = -np.sum(p * np.log(p + eps))          # natural log
-    H_max = np.log(n)                          # maximum entropy at uniform distribution
+    H = -np.sum(p * np.log(p + eps))
+    H_max = np.log(n)
 
     if not np.isfinite(H_max) or H_max <= eps:
         return 0.0
 
-    score = float(H / H_max)                   # in [0,1]
+    score = float(H / H_max)
     return float(np.clip(score, 0.0, 1.0))
 
 def test_change_point(x, y, window_size=3):
@@ -211,18 +207,16 @@ def test_skewness(values):
     Returns p-value and significance score (1 - p).
     """
     values = np.array(values, dtype=float)
-    values = values[~np.isnan(values)]  # drop NaNs
+    values = values[~np.isnan(values)]
 
-    if len(values) < 8:  # skewtest requires n >= 8
+    if len(values) < 8:
         return None, None, None
 
-    # Compute skewness coefficient
     skewness_value = skew(values)
 
     # Hypothesis test: H0 -> skewness = 0 (normal symmetry)
     stat, p_value = skewtest(values)
 
-    # Significance: higher when p-value is small
     significance = 1 - p_value
 
     return skewness_value, p_value, significance

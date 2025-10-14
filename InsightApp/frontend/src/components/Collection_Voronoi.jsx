@@ -51,9 +51,8 @@ function CollectionVoronoi({
 }) {
   const ref = useRef();
 
-  // === Combo (columns) state ===
-  const [selectedCols, setSelectedCols] = useState([]); // checkboxes, before Apply
-  const [appliedCols, setAppliedCols]   = useState([]); // columns actually applied
+  const [selectedCols, setSelectedCols] = useState([]); 
+  const [appliedCols, setAppliedCols]   = useState([]); 
 
   // Build list of available columns from valueSequences
   const allColumns = useMemo(() => {
@@ -524,7 +523,7 @@ function CollectionVoronoi({
             flex: 1,
             padding: "3px 3px",
             border: "1px solid #6b6a6aff",
-            boxSizing: "border-box",       // keeps the border inside
+            boxSizing: "border-box",
           }}
         >
           {allColumns.map((col) => (
@@ -556,7 +555,7 @@ function CollectionVoronoi({
           ))}
         </div>
 
-        {/* Fixed Apply / Clear buttons */}
+        {/* Apply / Clear buttons */}
         <div
           style={{
             flexShrink: 0,

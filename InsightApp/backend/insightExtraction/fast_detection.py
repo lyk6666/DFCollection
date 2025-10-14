@@ -1,6 +1,5 @@
 import numpy as np
 
-# ---------- shared small utils ----------
 _EPS = 1e-12
 
 def _safe(x):

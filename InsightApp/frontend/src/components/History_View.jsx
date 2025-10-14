@@ -20,7 +20,7 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     overflow: "hidden",
     border: "1px solid #e6e6e6",
     background: "#fff",
-    boxSizing: "border-box" // makes border part of width/height
+    boxSizing: "border-box"
   };
 
   // --- Minimal slider (no controls). We keep a ref so the parent could scroll if ever needed.
@@ -38,14 +38,14 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
     }
 
     // ------- per-panel sizing -------
-    const titleH = showMeta ? cellH * 0.10 : cellH * 0.10; // taller for current
-    const metaH  = showMeta ? cellH * 0.15 : cellH * 0.1;            // only current shows meta
+    const titleH = showMeta ? cellH * 0.10 : cellH * 0.10;
+    const metaH  = showMeta ? cellH * 0.15 : cellH * 0.1; 
     const innerXPad = pad * 2;
 
     const localChartW = Math.max(0, cellW - innerXPad);
     const localChartH = Math.max(40, cellH - innerXPad - titleH - metaH);
 
-    const XaxisOffset = localChartH * 0.05; // offset for X axis label
+    const XaxisOffset = localChartH * 0.05;
     const YaxisOffset = localChartW * 0.1
 
     // fonts/margins proportional to local panel
@@ -146,8 +146,8 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
       switch (type) {
         case "Dominance": {
           const generateBlueShades = (count) => {
-            const start = { r: 90, g: 216, b: 230 }; // light blue
-            const end   = { r: 30, g: 144, b: 200 }; // dodgerblue
+            const start = { r: 90, g: 216, b: 230 }; 
+            const end   = { r: 30, g: 144, b: 200 };
             return Array.from({ length: count }, (_, i) => {
               const ratio = i / Math.max(1, (count - 1));
               const r = Math.round(start.r + (end.r - start.r) * ratio);
@@ -159,7 +159,6 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
 
           const colors = generateBlueShades(data.length);
 
-          // Find the largest slice once
           const largestIndex = data.reduce(
             (maxIdx, d, i) =>
               d[measureKey] > data[maxIdx][measureKey] ? i : maxIdx,
@@ -219,7 +218,6 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
                   cy="45%"
                   outerRadius={Math.min(localChartW, localChartH) * 0.4}
                   paddingAngle={1}
-                  // Only render a label for the largest slice
                   label={(props) =>
                     props.index === largestIndex ? renderCustomLabel(props) : null
                   }
@@ -292,7 +290,6 @@ function HistoryView({ width, height, currentInsight, currentCollection, history
           return (
             <ResponsiveContainer width={localChartW} height={localChartH}>
               <AreaChart data={data} margin={commonMargins}>
-                {/* optional grid if you like: <CartesianGrid strokeDasharray="3 3" /> */}
                 <defs>
                   <linearGradient id="skewFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#D4A017" stopOpacity={0.75} />

@@ -1,16 +1,12 @@
 from sklearn.manifold import MDS
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-import math
-import pandas as pd
-import os
 
 from config import (
     TYPE_METADATA,
 )
 
 import config
-
 
 def intra_coupled_similarity(): 
     df = config.DATAFRAME
@@ -87,7 +83,7 @@ def inter_coupled_similarity():
 
     return result
 
-
+# inter-coupled similarity calculation; ignore in our work.
 # def inter_coupled_similarity():
 #     df = config.DATAFRAME
 #     cats = config.CATEGORICAL_COLUMNS
@@ -162,7 +158,6 @@ def compute_coupled_distance_matrix(insights, intra_sim, inter_sim,
 
     for i in range(n):
         for j in range(n):
-            # Coupled similarity
             sim_total = 0
             count = 0
             all_attrs = insights[i]['subspace'].keys()

@@ -24,7 +24,7 @@ DATAFRAME: Optional[pd.DataFrame] = None
 CATEGORICAL_COLUMNS: Optional[List[str]] = None
 ORDINAL_COLUMNS: Optional[List[str]] = None
 NUMERICAL_COLUMNS: Optional[List[str]] = None
-MEASURE_AGGS: Optional[Dict[str, str]] = None  # canonicalized in backend; stored here
+MEASURE_AGGS: Optional[Dict[str, str]] = None 
 
 def set_uploaded_dataset(df: pd.DataFrame) -> None:
     """
@@ -61,7 +61,6 @@ def set_column_selections(
     CATEGORICAL_COLUMNS = categorical
     ORDINAL_COLUMNS = ordinal
     NUMERICAL_COLUMNS = numerical
-    # Prefer explicit measure_aggs, fall back to numerical_aggs if provided
     MEASURE_AGGS = measure_aggs if measure_aggs is not None else numerical_aggs
 
 def clear_all() -> None:
@@ -86,7 +85,7 @@ TYPE_METADATA = {
     "Correlation":          ("Compound",        "#2ca02c"),
 }
 
-# in config.py
+# leave this part, unless you want to recompute facts
 STORE_INSIGHTS_TO_DISK = False  # default False
 LOAD_INSIGHTS_FROM_DISK = False
 # PRECOMPUTED_INSIGHTS_NAME = "insights_HR"

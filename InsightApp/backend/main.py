@@ -1,18 +1,14 @@
 from __future__ import annotations
-
 import json
 import logging
 from typing import List, Dict, Any, Optional
 import inspect
-
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
-# ==== Your domain modules (unchanged) ====
 from polygonConstruction.spilt_collection import split_collection_by_filters, get_value_sequences
 from polygonConstruction.polygon_split import recursive_polygon_split
 from insightExtraction.insight_engine import generate_insights
@@ -28,16 +24,13 @@ from insightSimilarity.insight_categorical_similarity import (
     inter_coupled_similarity,
     compute_insight_positions,
 )
-
-# ==== Dynamic dataset/config ====
-import config  # uses the new upload-first config.py
-
-from pathlib import Path  # NEW
+import config
+from pathlib import Path
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # lock this down in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,7 +72,6 @@ def _load_insights_from_disk() -> Optional[List[Dict[str, Any]]]:
     Load precomputed insights from ./precomputed_insights/<PRECOMPUTED_INSIGHTS_NAME>.json.
     Returns None if the file is missing or unreadable.
     """
-    from pathlib import Path  # if not already imported at top
     INSIGHT_STORE_DIR = Path("./precomputed_insights")
     base = getattr(config, "PRECOMPUTED_INSIGHTS_NAME", "insights")
     safe_base = str(base).strip() or "insights"
@@ -114,7 +106,7 @@ _AGG_CANON = {
     "MEAN": "mean",
     "COUNT": "count",
 }
-_ALLOWED_FRONT_AGGS = set(_AGG_CANON.keys())  # what the UI is allowed to send
+_ALLOWED_FRONT_AGGS = set(_AGG_CANON.keys())
 
 def _canon_agg(agg: str) -> str:
     key = (agg or "").strip().upper()
@@ -133,14 +125,9 @@ def _normalize_precomputed_insights(insights: List[Dict[str, Any]]) -> List[Dict
     normalized = []
     for ins in insights:
         d = dict(ins)
-        # normalize 'measure'
         m = d.get("measure")
         if isinstance(m, list):
-            # choose one policy; either tuple or string-join
-            # Option A (safer for grouping keys): tuple
             d["measure"] = tuple(m)
-            # Option B (if downstream expects a string, use this instead):
-            # d["measure"] = " | ".join(map(str, m))
         normalized.append(d)
     return normalized
 
@@ -154,22 +141,20 @@ def _normalize_measure_aggs(raw: Any, numerical_cols: List[str]) -> Dict[str, st
       - None -> default SUM for all numerical_cols
     Non-numerical columns are ignored; invalid aggs raise HTTPException.
     """
-    # Default: SUM for every numerical column (if nothing provided)
+    # Default: SUM if nothing provided
     if raw is None:
         return {col: _AGG_CANON["SUM"] for col in numerical_cols}
 
     out: Dict[str, str] = {}
-    # Dict form
+
     if isinstance(raw, dict):
         for col, agg in raw.items():
             if col in numerical_cols:
                 out[col] = _canon_agg(str(agg))
-        # fill missing numerical with SUM (optional; keep strict? choose to default)
         for col in numerical_cols:
             out.setdefault(col, _AGG_CANON["SUM"])
         return out
 
-    # List form
     if isinstance(raw, list):
         for entry in raw:
             if isinstance(entry, (list, tuple)) and len(entry) == 2:
@@ -186,7 +171,6 @@ def _normalize_measure_aggs(raw: Any, numerical_cols: List[str]) -> Dict[str, st
                     status_code=400,
                     detail="Invalid measure_aggs list entry. Expect [col, agg] or {column, agg}."
                 )
-        # default missing to SUM
         for col in numerical_cols:
             out.setdefault(col, _AGG_CANON["SUM"])
         return out
@@ -218,10 +202,6 @@ def _require_ready_dataset() -> None:
             status_code=409,
             detail="Columns not set. Submit categorical, ordinal & numerical selections."
         )
-    # measure_aggs is optional for strict backward compatibility; when present, it must be dict-like
-    # If you'd like to make it required, uncomment the next lines:
-    # if getattr(config, "MEASURE_AGGS", None) is None:
-    #     raise HTTPException(status_code=409, detail="Aggregation methods not set. Submit measure_aggs.")
 
 def _convert_numpy(obj):
     if isinstance(obj, dict):
@@ -254,7 +234,6 @@ def to_jsonable(x):
 def _df_preview(df: pd.DataFrame, n: int = 3):
     return df.head(n).to_dict(orient="records")
 
-# Try to call generate_insights with df & selections if supported
 def _run_generate_insights(
     df: pd.DataFrame,
     categorical: List[str],
@@ -272,16 +251,14 @@ def _run_generate_insights(
         kwargs["ordinal"] = ordinal
     if "numerical" in sig.parameters:
         kwargs["numerical"] = numerical
-    # New: pass aggregation mapping if supported under either name
     if "measure_aggs" in sig.parameters:
         kwargs["measure_aggs"] = measure_aggs
     elif "numerical_aggs" in sig.parameters:
         kwargs["numerical_aggs"] = measure_aggs
 
     if kwargs:
-        return generate_insights(**kwargs)  # type: ignore[arg-type]
+        return generate_insights(**kwargs)
 
-    # Fallback to old behavior (maybe generate_insights imports from config internally)
     return generate_insights()
 
 def _process_pipeline():
@@ -300,7 +277,6 @@ def _process_pipeline():
     try:
         _state.update({"stage": "processing", "message": "Processing uploaded dataset...", "error": None})
 
-        # Flags & exclusivity check
         load_from_disk = bool(getattr(config, "LOAD_INSIGHTS_FROM_DISK", False))
         store_to_disk = bool(getattr(config, "STORE_INSIGHTS_TO_DISK", False))
         if load_from_disk and store_to_disk:
@@ -333,11 +309,9 @@ def _process_pipeline():
             for i, pos in enumerate(positions):
                 collections[i]["position"] = pos
 
-            # Compute categorical similarity matrices (fresh)
             _cached_intra_similarity = intra_coupled_similarity()
             _cached_inter_similarity = inter_coupled_similarity()
 
-            # Cache results
             _cached_insights = insights
             _cached_collections = to_jsonable(collections)
 
@@ -354,14 +328,12 @@ def _process_pipeline():
         if df is None:
             raise RuntimeError("DATAFRAME is None during processing")
 
-        # Aggregations (default to SUM for selected numeric cols)
         cfg_aggs = getattr(config, "MEASURE_AGGS", None)
         measure_aggs = _normalize_measure_aggs(cfg_aggs, numerical)
 
         # 1) Generate insights
         insights = _run_generate_insights(df, categorical, ordinal, numerical, measure_aggs)
 
-        # Ensure any pandas objects inside insights are JSON-serializable
         json_ready_insights: List[Dict[str, Any]] = []
         for ins in insights:
             ins_copy = dict(ins)
@@ -378,22 +350,19 @@ def _process_pipeline():
         for i, pos in enumerate(positions):
             collections[i]["position"] = pos
 
-        # Compute categorical similarity matrices (fresh)
         _cached_intra_similarity = intra_coupled_similarity()
         _cached_inter_similarity = inter_coupled_similarity()
 
-        # Cache results
         _cached_insights = json_ready_insights
         _cached_collections = to_jsonable(collections)
 
-        # STORE mode → persist computed insights to disk
+        # STORE mode → persist computed insights to disk, prepare for precomputed version
         if store_to_disk:
             _save_insights_to_disk(_cached_insights)
 
         _state.update({"stage": "ready", "message": "Processing complete", "error": None})
         logger.info("✅ Pipeline processing complete.")
     except HTTPException:
-        # surface FastAPI errors unchanged
         raise
     except Exception as e:
         _state.update({"stage": "error", "message": "Processing failed", "error": str(e)})
@@ -404,16 +373,10 @@ class ColumnSelections(BaseModel):
     categorical: List[str]
     ordinal: List[str]
     numerical: List[str]
-    # Flexible field to carry aggregation methods per measure.
-    # Accepts any of:
-    #  - dict {column: agg}
-    #  - list of [column, agg]
-    #  - list of {"column": col, "agg": agg}
-    #  - None
     measure_aggs: Optional[Any] = None
 
 class SectionRequest(BaseModel):
-    collection_id: int  # or str, depending on your id type
+    collection_id: int
     filter_sequence: list
 
 class InsightListRequest(BaseModel):
@@ -426,7 +389,6 @@ async def upload_csv(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Please upload a .csv file")
 
     try:
-        # Read directly from stream
         df = pd.read_csv(file.file)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read CSV: {e}")
@@ -459,7 +421,6 @@ async def set_columns(sel: ColumnSelections, background: BackgroundTasks):
     if getattr(config, "DATAFRAME", None) is None:
         raise HTTPException(status_code=409, detail="No CSV uploaded yet.")
 
-    # Normalize aggregation mapping relative to the selected numerical columns
     numerical_cols = sel.numerical or []
     norm_aggs = _normalize_measure_aggs(sel.measure_aggs, numerical_cols)
 
@@ -482,8 +443,6 @@ async def set_columns(sel: ColumnSelections, background: BackgroundTasks):
     elif "numerical_aggs" in sig.parameters:
         kwargs["numerical_aggs"] = norm_aggs
 
-    # If the config fn doesn't support measure aggs, try to set an attribute
-    # (keeps old configs working)
     try:
         if kwargs:
             set_cols_fn(**kwargs)

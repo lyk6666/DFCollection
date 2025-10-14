@@ -37,7 +37,7 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
     agg_map = getattr(config, "MEASURE_AGGS", {}) or {}
 
     categorical_columns = list(cats)
-    ordinal_columns = set(ords)       # faster membership
+    ordinal_columns = set(ords)
     numerical_columns = list(nums)
 
     total_rows = len(df) if df is not None else 0
@@ -88,7 +88,7 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
         elif insight_type == "Evenness":
             significance = test_evenness(vals)
         elif insight_type == "Trend":
-            trend_sig, _ = test_trend(x, vals)  # you already have this
+            trend_sig, _ = test_trend(x, vals)
             significance = trend_sig
         elif insight_type == "Skewness":
             _, _, skew_sig = test_skewness(vals)
@@ -148,7 +148,7 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
             insights_set.append({
                 'subspace': dict(subspace_filter),
                 'breakdown': breakdown,
-                'measure': (m1_, m2_),  # store as tuple (unordered)
+                'measure': (m1_, m2_),
                 'type': compound_type,
                 'score': score,
                 'significance': corr_sig,
@@ -192,14 +192,14 @@ def generate_insights(verbose: bool = True, impact_threshold: float = 0.01, max_
         cur_rows = int(mask.sum())
         if cur_rows < MINI_DATASET:
             return
-        impact = cur_rows / float(total_rows)
-        if impact < impact_threshold:
+        coverage = cur_rows / float(total_rows)
+        if coverage < impact_threshold:
             return
 
         # If all categorical columns are decided -> evaluate immediately
         if col_idx == len(categorical_columns):
             sub_df = df.loc[mask]
-            _evaluate_and_emit(filt, sub_df, impact)
+            _evaluate_and_emit(filt, sub_df, coverage)
             return
 
         col = categorical_columns[col_idx]

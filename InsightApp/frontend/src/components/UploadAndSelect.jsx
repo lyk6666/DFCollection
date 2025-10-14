@@ -1,7 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
 
-/** ====== CONFIG ====== */
-// Change this to match your backend's IP/port
 const DEFAULT_API_BASE = "http://127.0.0.1:5000";
 
 /** ====== SHARED STYLES ====== */
