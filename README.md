@@ -3,7 +3,7 @@
 **DFCollection** is a scalable system for comprehensive, fact-based exploration.
 It visualizes the global distribution of facts, scales efficiently to large search spaces, and supports **hierarchical exploration** across categorical subspaces.
 
-[FullView.pdf](https://github.com/user-attachments/files/23265513/FullView.pdf)
+<img width="1276" height="684" alt="FullView" src="https://github.com/user-attachments/assets/06677671-ef07-4a3b-8998-fd9a6cde24f6" />
 
 ## Built With
 
