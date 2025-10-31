@@ -1,4 +1,4 @@
-# 🌐 DFCollection
+# DFCollection
 
 **DFCollection** is a scalable system for comprehensive, fact-based exploration.
 It visualizes the global distribution of facts, scales efficiently to large search spaces, and supports **hierarchical exploration** across categorical subspaces.
@@ -8,13 +8,13 @@ It visualizes the global distribution of facts, scales efficiently to large sear
 </p>
 
 
-## 🧱 Built With
+## Built With
 
 - **Frontend:** JavaScript (React, D3)
 - **Backend:** Python (FastAPI)
 
 
-## ✨ Key Features
+## Key Features
 
 - **Collection View:**
   Visualizes collections through distance-based projection and encodes collection attributes for efficient overview and filtering.
@@ -29,11 +29,11 @@ It visualizes the global distribution of facts, scales efficiently to large sear
   Records and organizes interesting findings to help users construct personalized data stories.
 
 
-## 🚀 Getting Started
+## Getting Started
 
 Follow these steps to set up and run **DFCollection** locally.
 
-### 🖥️ Backend Setup
+### Backend Setup
 
 1. **Navigate to the backend directory:**
    ```bash
@@ -54,7 +54,7 @@ Follow these steps to set up and run **DFCollection** locally.
 *(See `run.py` for configuration details.)*
 
 
-### 💻 Frontend Setup
+### Frontend Setup
 
 1. **Navigate to the frontend directory:**
    ```bash
