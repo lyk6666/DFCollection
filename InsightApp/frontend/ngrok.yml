@@ -1,15 +1,15 @@
 version: "2"
-authtoken: 33mfbr9yhCdJhtwAejODIuZqnAl_59TfVBGCKyfE9H8E23Sxx
+authtoken: //your-ngrok-auth-token-here/
 
 tunnels:
   frontend:
     proto: http
     addr: 8000
-    domain: lykfrontend.ngrok.dev
+    domain: //your-frontend-domain-here/
 
   backend:
     proto: http
     addr: 5000
-    domain: lykbackend.ngrok.dev
+    domain: //your-backend-domain-here/
 
 # ngrok start --all --config=ngrok.yml
