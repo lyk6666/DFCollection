@@ -7,14 +7,12 @@ It visualizes the global distribution of facts, scales efficiently to large sear
 <img src="https://github.com/user-attachments/assets/d46a6ea4-f1b9-4fd4-9e59-ec4185e23ef7" alt="DFCollection Interface" width="100%" />
 </p>
 
---- 
 
 ## 🧱 Built With
 
 - **Frontend:** JavaScript (React, D3)
 - **Backend:** Python (FastAPI)
 
----
 
 ## ✨ Key Features
 
@@ -29,8 +27,7 @@ It visualizes the global distribution of facts, scales efficiently to large sear
 
 - **Story View:**
   Records and organizes interesting findings to help users construct personalized data stories.
-  
----
+
 
 ## 🚀 Getting Started
 
@@ -56,7 +53,6 @@ Follow these steps to set up and run **DFCollection** locally.
    ```
 *(See `run.py` for configuration details.)*
 
----
 
 ### 💻 Frontend Setup
 
