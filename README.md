@@ -1,2 +1,4 @@
-# InsightMap_New
-This was the first version of our idea, but it was discarded because the structure was designed ineffectively, making it difficult to expand.
+# InsightApp
+You may ignore this part.  
+It represents the **initial version** of our idea, which was later **discarded** due to an ineffective structural design that limited scalability and flexibility.  
+Nevertheless, it serves as an **important milestone**, reflecting the early stages of our research, experimentation, and conceptual development.
