@@ -2,13 +2,12 @@ DFCollection – Interview Branch
 This branch is specifically designed for **interview demonstrations**.
 It uses **pre-computed data facts** to allow participants to explore the system efficiently, saving time by avoiding on-the-fly computations.
 
----
-
 ## Backend Configuration
 
 You can control how DFCollection handles data facts through environment variables:
 
 ### To Store Data Facts
+
 Enable the following setting to generate and save computed data facts:
 ```python
 STORE_INSIGHTS_TO_DISK = True
@@ -27,6 +26,7 @@ precomputed_insights/
 ---
 
 ### To Load Precomputed Facts
+
 After storing the facts, you can disable storage and load them directly to save processing time:
 ```python
 STORE_INSIGHTS_TO_DISK = False
