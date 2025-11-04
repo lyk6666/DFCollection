@@ -22,7 +22,7 @@ It visualizes the global distribution of facts, scales efficiently to large sear
 - **Fact View:**
   Displays facts organized by similarity with intuitive score-density cues for pattern recognition.
 
-- **Story View:**
+- **Fact Gallery:**
   Records and organizes interesting findings to help users construct personalized data stories.
 
 
