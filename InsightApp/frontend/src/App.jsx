@@ -11,7 +11,7 @@ import UploadAndSelect from "./components/UploadAndSelect";
 import {BACKEND_URL} from "./config";
 
 // Invisible capture button beside titles
-function ShotButton({ onClick, title = "Save PNG shot" }, disabled = true) {
+function ShotButton({ onClick, title = "Save PNG shot" }, disabled = false) {
   return (
     <button
       aria-label={title}
@@ -502,7 +502,7 @@ function App() {
         }}
       >
         <div style={{ position: "relative" }}>
-          <div style={titleStyle}>Story View</div>
+          <div style={titleStyle}>Fact Gallery</div>
           <ShotButton
             onClick={() => captureSection(historyRef, "History-View")}
           />
