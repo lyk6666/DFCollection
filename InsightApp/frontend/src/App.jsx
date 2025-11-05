@@ -500,7 +500,7 @@ function App() {
         }}
       >
         <div style={{ position: "relative" }}>
-          <div style={titleStyle}>Story View</div>
+          <div style={titleStyle}>Fact Gallery</div>
           <ShotButton
             onClick={() => captureSection(historyRef, "History-View")}
           />
