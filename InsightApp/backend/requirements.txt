@@ -6,3 +6,4 @@ scikit_learn==1.7.1
 scipy==1.16.1
 Shapely==2.1.1
 uvicorn==0.35.0
+python-multipart==0.0.9
