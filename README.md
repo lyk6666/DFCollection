@@ -3,6 +3,11 @@
 **DFCollection** is a scalable system for comprehensive, fact-based exploration.
 It visualizes the global distribution of facts, scales efficiently to large search spaces, and supports **hierarchical exploration** across categorical subspaces.
 
+## Publication
+
+[**DFCollection: Scalable and hierarchical visual exploration of data facts**](https://doi.org/10.1016/j.visinf.2026.100376)  
+Yikai Li, Xiaolin Wen, Qiaomu Shen, and Yong Wang. *Visual Informatics*, 2026.
+
 <img width="1276" height="684" alt="FullView (1)" src="https://github.com/user-attachments/assets/0966a183-6908-4e13-b651-602e4caad4da" />
 
 ## Built With
